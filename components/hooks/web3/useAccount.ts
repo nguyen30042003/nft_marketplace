@@ -1,17 +1,20 @@
 import useSWR from "swr";
 import { CryptoHookFactory } from "@_types/hooks";
 import { useEffect } from "react";
-// deps -> provider, ethereum, contract (web3State)
+
+
 type UseAccountResponse = {
   connect: () => void;
+  isLoading: boolean;
+  isInstalled: boolean;
 }
 
 type AccountHookFactory = CryptoHookFactory<string, UseAccountResponse>
 
 export type UseAccountHook = ReturnType<AccountHookFactory>
 
-export const hookFactory: AccountHookFactory = ({provider, ethereum}) => () => {
-  const swrRes = useSWR(
+export const hookFactory: AccountHookFactory = ({provider, ethereum, isLoading}) => () => {
+  const {data, mutate, isValidating, ...swr} = useSWR(
     provider ? "web3/useAccount" : null,
     async () => {
       const accounts = await provider!.listAccounts();
@@ -21,7 +24,8 @@ export const hookFactory: AccountHookFactory = ({provider, ethereum}) => () => {
       }
       return account;
     }, {
-      revalidateOnFocus: false
+      revalidateOnFocus: false,
+      shouldRetryOnError: false
     }
   )
   useEffect(() => {
@@ -35,9 +39,8 @@ export const hookFactory: AccountHookFactory = ({provider, ethereum}) => () => {
     const accounts = args[0] as string[];
     if (accounts.length === 0) {
       console.error("Please, connect to Web3 wallet");
-    } else if (accounts[0] !== swrRes.data) {
-      alert("accounts has changed");
-      console.log(accounts[0]);
+    } else if (accounts[0] !== data) {
+      mutate(accounts[0]);
     }
   }
 
@@ -46,13 +49,31 @@ export const hookFactory: AccountHookFactory = ({provider, ethereum}) => () => {
   const connect = async () => {
     try {
       ethereum?.request({method: "eth_requestAccounts"});
+      console.log("Ethereum provider:");
+      window.addEventListener('load', function() {
+        if (window.ethereum) {
+          console.log('Ethereum support is available')
+          if (window.ethereum.isMetaMask) {
+            console.log('MetaMask is active')
+          } else {
+            console.log('MetaMask is not available')
+          }
+        } else {
+          console.log('Ethereum support is not found')
+        }
+      })
     } catch(e) {
       console.error(e);
     }
   }
 
   return {
-    ...swrRes,
+    ...swr,
+    data,
+    isValidating,
+    isLoading: isLoading || isValidating,
+    isInstalled: ethereum?.isMetaMask || false,
+    mutate,
     connect
   };
 }
