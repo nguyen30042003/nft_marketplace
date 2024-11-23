@@ -1,29 +1,27 @@
 import { CryptoHookFactory } from "@_types/hooks";
 import { Nft } from "@_types/nft";
-import useSWR from "swr";
 import { ethers } from "ethers";
+import useSWR from "swr";
 import { useCallback } from "react";
 import { toast } from "react-toastify";
-
-type UseListedNftsResponse = {
-  buyNft: (token: number, value: number) => Promise<void>
+type UseOwnedNftsResponse = {
+  listNft: (tokenId: number, price: number) => Promise<void>
 }
-type ListedNftsHookFactory = CryptoHookFactory<Nft[], UseListedNftsResponse>
+type OwnedNftsHookFactory = CryptoHookFactory<Nft[], UseOwnedNftsResponse>
 
-export type UseListedNftsHook = ReturnType<ListedNftsHookFactory>
+export type UseOwnedNftsHook = ReturnType<OwnedNftsHookFactory>
 
-export const hookFactory: ListedNftsHookFactory = ({contract}) => () => {
+export const hookFactory: OwnedNftsHookFactory = ({contract}) => () => {
   const {data, ...swr} = useSWR(
-    contract ? "web3/useListedNfts" : null,
+    contract ? "web3/useOwnedNfts" : null,
     async () => {
       const nfts = [] as Nft[];
-      const coreNfts = await contract!.getAllNftsOnSale();
-     
+      const coreNfts = await contract!.getOwnedNfts();
+
       for (let i = 1; i < coreNfts.length; i++) {
         const item = coreNfts[i];
         const tokenURI = await contract!.tokenURI(item.tokenId);
         const metaRes = await fetch(tokenURI);
-        console.log(tokenURI)
         const meta = await metaRes.json();
 
         nfts.push({
@@ -35,37 +33,38 @@ export const hookFactory: ListedNftsHookFactory = ({contract}) => () => {
         })
       }
 
-      console.log("nfts", nfts);
-
       return nfts;
     }
   )
 
-
   const _contract = contract;
-  const buyNft = useCallback(async (tokenId: number, value: number) => {
+  const listNft = useCallback(async (tokenId: number, price: number) => {
     try {
-      const result = await contract!.buyNft(
-        tokenId, {
-          value: ethers.utils.parseEther(value.toString())
+      const result = await _contract!.placeNftOnSale(
+        tokenId,  
+        ethers.utils.parseEther(price.toString()),
+        {
+          value: ethers.utils.parseEther(0.025.toString())
         }
       )
+
       await toast.promise(
         result!.wait(), {
           pending: "Processing transaction",
-          success: "Nft is yours! Go to Profile page",
+          success: "Item has been listed",
           error: "Processing error"
         }
       );
+
     } catch (e: any) {
       console.error(e.message);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [_contract])
+
 
   return {
     ...swr,
-    buyNft,
+    listNft,
     data: data || [],
   };
 }

@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 // eslint-disable-next-line @next/next/no-img-element
 
 import { Disclosure, DisclosureButton, DisclosurePanel, Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/react'
@@ -20,8 +21,8 @@ export default function Navbar() {
   const { account } = useAccount();
   const { network } = useNetwork();
 
-  console.log(network.data);
-
+  console.log("ss", network.data);
+  console.log(account.isInstalled);
 
 
   return (
@@ -39,6 +40,7 @@ export default function Navbar() {
           </div>
           <div className="flex flex-1 items-center justify-center sm:items-stretch sm:justify-start">
             <div className="flex flex-shrink-0 items-center">
+               @next/next/no-img-element
               <img
                 alt="Your Company"
                 src="https://tailwindui.com/img/logos/mark.svg?color=indigo&shade=500"

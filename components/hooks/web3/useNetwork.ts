@@ -19,6 +19,7 @@ const NETWORKS: {[k: string]: string} = {
   1337: "Ganache",
 }
 const targetId = process.env.NEXT_PUBLIC_TARGET_CHAIN_ID as string;
+console.log(targetId)
 const targetNetwork = NETWORKS[targetId];
 
 type NetworkHookFactory = CryptoHookFactory<string, UseNetworkResponse>
