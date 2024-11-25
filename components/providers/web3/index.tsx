@@ -4,6 +4,9 @@ import { ethers } from "ethers";
 import { setupHooks } from "@hooks/web3/setupHooks";
 import { MetaMaskInpageProvider } from "@metamask/providers";
 import { NftMarketContract } from "@_types/nftMarketContract";
+import { Props } from "@_types/interface";
+
+
 
 const pageReload = () => { window.location.reload(); }
 
@@ -23,7 +26,7 @@ const removeGlobalListeners = (ethereum: MetaMaskInpageProvider) => {
 } 
 const Web3Context = createContext<Web3State>(createDefaultState());
 
-const Web3Provider: FunctionComponent = ({children}) => {
+const Web3Provider: FunctionComponent<Props> = ({children}) => {
   const [web3Api, setWeb3Api] = useState<Web3State>(createDefaultState())
   useEffect(() => {
     async function initWeb3() {
