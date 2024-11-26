@@ -11,7 +11,7 @@ import { NftMeta, PinataRes } from '@_types/nft';
 import { ethers } from 'ethers';
 import { toast } from "react-toastify";
 
-const ALLOWED_FIELDS = ["name", "description", "image", "attributes"];
+const ALLOWED_FIELDS = ["name", "description", "image"];
 
 const NftCreate: NextPage = () => {
   const {ethereum, contract} = useWeb3();
@@ -22,11 +22,6 @@ const NftCreate: NextPage = () => {
     name: "",
     description: "",
     image: "",
-    attributes: [
-      {trait_type: "attack", value: "0"},
-      {trait_type: "health", value: "0"},
-      {trait_type: "speed", value: "0"},
-    ]
   });
 
 
@@ -108,16 +103,7 @@ const NftCreate: NextPage = () => {
   }
 
 
-  const handleAttributeChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    const attributeIdx = nftMeta.attributes.findIndex(attr => attr.trait_type === name);
 
-    nftMeta.attributes[attributeIdx].value = value;
-    setNftMeta({
-      ...nftMeta,
-      attributes: nftMeta.attributes
-    })
-  }
 
 
   const createNft = async () => {
@@ -342,7 +328,7 @@ const NftCreate: NextPage = () => {
                     </div>
                   </div>
                   }
-                  <div className="grid grid-cols-6 gap-6">
+                  {/* <div className="grid grid-cols-6 gap-6">
                   { nftMeta.attributes.map(attribute =>
                       <div key={attribute.trait_type} className="col-span-6 sm:col-span-6 lg:col-span-2">
                         <label htmlFor={attribute.trait_type} className="block text-sm font-medium text-gray-700">
@@ -358,7 +344,7 @@ const NftCreate: NextPage = () => {
                         />
                       </div>
                     )}
-                  </div>
+                  </div> */}
                   <p className="text-sm !mt-2 text-gray-500">
                     Choose value from 0 to 100
                   </p>

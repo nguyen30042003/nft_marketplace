@@ -116,7 +116,7 @@ const Profile: NextPage = () => {
                     </div>
                   </div>
                 </div>
-                <div>
+                {/* <div>
                   <h3 className="font-medium text-gray-900">Information</h3>
                   <dl className="mt-2 border-t border-b border-gray-200 divide-y divide-gray-200">
                     {activeNft.meta.attributes.map((attr) => (
@@ -126,7 +126,7 @@ const Profile: NextPage = () => {
                       </div>
                     ))}
                   </dl>
-                </div>
+                </div> */}
 
                 <div className="flex">
                   <button
