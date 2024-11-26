@@ -10,7 +10,7 @@ export type NftMeta = {
   name: string;
   description: string;  
   image: string;
-  attributes: NftAttribute[];
+  //attributes: NftAttribute[];
 }
 
 export type NftCore = {
