@@ -18,14 +18,14 @@ export const hookFactory: ListedNftsHookFactory = ({contract}) => () => {
     async () => {
       const nfts = [] as Nft[];
       const coreNfts = await contract!.getAllNftsOnSale();
-     
-      for (let i = 1; i < coreNfts.length; i++) {
+      console.log(coreNfts[0].tokenId);
+      for (let i = 0; i < coreNfts.length; i++) {
         const item = coreNfts[i];
         const tokenURI = await contract!.tokenURI(item.tokenId);
         const metaRes = await fetch(tokenURI);
+        console.log(i)
         console.log(tokenURI)
         const meta = await metaRes.json();
-        
         nfts.push({
           price: parseFloat(ethers.utils.formatEther(item.price)),
           tokenId: item.tokenId.toNumber(),

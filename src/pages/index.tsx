@@ -3,24 +3,38 @@
 /* eslint-disable @next/next/no-img-element */
 
 import type { NextPage } from "next";
-import { BaseLayout, NftList  } from "@ui";
+import { BaseLayout, NftList } from "@ui";
+import Hero from "@ui/homepage/hero";
+import FeaturesSection from "@ui/homepage/features";
+import { motion } from "framer-motion";
 
 const Home: NextPage = () => {
   return (
     <BaseLayout>
-      <div className="relative bg-gray-50 pt-16 pb-20 px-4 sm:px-6 lg:pt-24 lg:pb-28 lg:px-8">
-        <div className="absolute inset-0">
-          <div className="bg-white h-1/3 sm:h-2/3" />
-        </div>
-        <div className="relative">
-          <div className="text-center">
-            <h2 className="text-3xl tracking-tight font-extrabold text-gray-900 sm:text-4xl">Amazing Creatures NFTs</h2>
-            <p className="mt-3 max-w-2xl mx-auto text-xl text-gray-500 sm:mt-4">
-              Mint a NFT to get unlimited ownership forever!
-            </p>
-          </div>
-          <NftList />
-        </div>
+      <div className="scroll-smooth scroll-snap-y h-screen w-screen overflow-y-scroll">
+        {/* Hero Section */}
+        <section
+          id="hero"
+          className="h-screen flex items-center justify-center bg-gray-50 snap-start"
+        >
+          <Hero />
+        </section>
+
+        {/* Features Section */}
+        <section
+          id="features"
+          className="h-screen flex items-center justify-center bg-blue-50 snap-start"
+        >
+          <motion.div
+            className="container mx-auto p-4 my-6 space-y-2 text-center"
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <FeaturesSection />
+
+          </motion.div>
+        </section>
       </div>
     </BaseLayout>
   )

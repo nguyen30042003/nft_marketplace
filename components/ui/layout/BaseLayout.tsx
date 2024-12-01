@@ -1,6 +1,7 @@
 import { FunctionComponent } from "react";
 import Navbar from "../navbar";
 import { Props } from "@_types/interface";
+import Footer from "@ui/footer";
 
 
 
@@ -14,6 +15,7 @@ const BaseLayout: FunctionComponent<Props> = ({children}) => {
                     {children}
                 </div>
             </div>
+            <Footer/>
         </>
         
     );
