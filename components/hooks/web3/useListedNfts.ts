@@ -12,19 +12,17 @@ type ListedNftsHookFactory = CryptoHookFactory<Nft[], UseListedNftsResponse>
 
 export type UseListedNftsHook = ReturnType<ListedNftsHookFactory>
 
-export const hookFactory: ListedNftsHookFactory = ({contract}) => () => {
+export const hookFactory: ListedNftsHookFactory = ({copyrightContract}) => () => {
   const {data, ...swr} = useSWR(
-    contract ? "web3/useListedNfts" : null,
+    copyrightContract ? "web3/useListedNfts" : null,
     async () => {
       const nfts = [] as Nft[];
-      const coreNfts = await contract!.getAllNftsOnSale();
-      console.log(coreNfts[0].tokenId);
+      const coreNfts = await copyrightContract!.getAllNftsOnSale();
+      console.log(coreNfts.length);
       for (let i = 0; i < coreNfts.length; i++) {
         const item = coreNfts[i];
-        const tokenURI = await contract!.tokenURI(item.tokenId);
+        const tokenURI = await copyrightContract!.tokenURI(item.tokenId);
         const metaRes = await fetch(tokenURI);
-        console.log(i)
-        console.log(tokenURI)
         const meta = await metaRes.json();
         nfts.push({
           price: parseFloat(ethers.utils.formatEther(item.price)),
@@ -42,10 +40,10 @@ export const hookFactory: ListedNftsHookFactory = ({contract}) => () => {
   )
 
 
-  const _contract = contract;
+  const _contract = copyrightContract;
   const buyNft = useCallback(async (tokenId: number, value: number) => {
     try {
-      const result = await contract!.buyNft(
+      const result = await copyrightContract!.buyNft(
         tokenId, {
           value: ethers.utils.parseEther(value.toString())
         }

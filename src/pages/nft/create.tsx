@@ -14,7 +14,7 @@ import { toast } from "react-toastify";
 const ALLOWED_FIELDS = ["name", "description", "image"];
 
 const NftCreate: NextPage = () => {
-  const {ethereum, contract} = useWeb3();
+  const {ethereum, copyrightContract} = useWeb3();
   const [nftURI, setNftURI] = useState("");
   const [price, setPrice] = useState("");
   const [hasURI, setHasURI] = useState(false);
@@ -117,12 +117,14 @@ const NftCreate: NextPage = () => {
         }
       })
 
-      const tx = await contract?.mintToken(
+
+      const tx = await copyrightContract?.mintToken(
         nftURI,
         ethers.utils.parseEther(price), {
           value: ethers.utils.parseEther(0.025.toString())
         }
       );
+
 
       await toast.promise(
         tx!.wait(), {

@@ -61,7 +61,10 @@ export type NftMarketContractEvents =
   | 'MetadataUpdate'
   | 'NftItemCreated'
   | 'OwnershipTransferred'
-  | 'Transfer';
+  | 'RoleAssigned'
+  | 'RoleRemoved'
+  | 'Transfer'
+  | 'UserAdded';
 export interface NftMarketContractEventsContext {
   Approval(...parameters: any): EventFilter;
   ApprovalForAll(...parameters: any): EventFilter;
@@ -69,18 +72,28 @@ export interface NftMarketContractEventsContext {
   MetadataUpdate(...parameters: any): EventFilter;
   NftItemCreated(...parameters: any): EventFilter;
   OwnershipTransferred(...parameters: any): EventFilter;
+  RoleAssigned(...parameters: any): EventFilter;
+  RoleRemoved(...parameters: any): EventFilter;
   Transfer(...parameters: any): EventFilter;
+  UserAdded(...parameters: any): EventFilter;
 }
 export type NftMarketContractMethodNames =
   | 'new'
+  | 'addUser'
   | 'approve'
+  | 'assignRole'
   | 'balanceOf'
   | 'getApproved'
+  | 'getUserInfo'
+  | 'isAdmin'
   | 'isApprovedForAll'
+  | 'isUser'
+  | 'isVerifier'
   | 'listingPrice'
   | 'name'
   | 'owner'
   | 'ownerOf'
+  | 'removeRole'
   | 'renounceOwnership'
   | 'safeTransferFrom'
   | 'safeTransferFrom'
@@ -129,10 +142,32 @@ export interface OwnershipTransferredEventEmittedResponse {
   previousOwner: string;
   newOwner: string;
 }
+export interface RoleAssignedEventEmittedResponse {
+  account: string;
+  role: string;
+}
+export interface RoleRemovedEventEmittedResponse {
+  account: string;
+  role: string;
+}
 export interface TransferEventEmittedResponse {
   from: string;
   to: string;
   tokenId: BigNumberish;
+}
+export interface UserAddedEventEmittedResponse {
+  account: string;
+  name: string;
+  email: string;
+}
+export interface GetUserInfoResponse {
+  name: string;
+  0: string;
+  email: string;
+  1: string;
+  tokenURI: string;
+  2: string;
+  length: 3;
 }
 export interface NftitemResponse {
   tokenId: BigNumber;
@@ -157,12 +192,42 @@ export interface NftMarketContract {
    * Constant: false
    * StateMutability: nonpayable
    * Type: function
+   * @param account Type: address, Indexed: false
+   * @param name Type: string, Indexed: false
+   * @param email Type: string, Indexed: false
+   * @param tokenURI Type: string, Indexed: false
+   */
+  addUser(
+    account: string,
+    name: string,
+    email: string,
+    tokenURI: string,
+    overrides?: ContractTransactionOverrides
+  ): Promise<ContractTransaction>;
+  /**
+   * Payable: false
+   * Constant: false
+   * StateMutability: nonpayable
+   * Type: function
    * @param to Type: address, Indexed: false
    * @param tokenId Type: uint256, Indexed: false
    */
   approve(
     to: string,
     tokenId: BigNumberish,
+    overrides?: ContractTransactionOverrides
+  ): Promise<ContractTransaction>;
+  /**
+   * Payable: false
+   * Constant: false
+   * StateMutability: nonpayable
+   * Type: function
+   * @param account Type: address, Indexed: false
+   * @param role Type: string, Indexed: false
+   */
+  assignRole(
+    account: string,
+    role: string,
     overrides?: ContractTransactionOverrides
   ): Promise<ContractTransaction>;
   /**
@@ -192,12 +257,50 @@ export interface NftMarketContract {
    * Constant: true
    * StateMutability: view
    * Type: function
+   * @param account Type: address, Indexed: false
+   */
+  getUserInfo(
+    account: string,
+    overrides?: ContractCallOverrides
+  ): Promise<GetUserInfoResponse>;
+  /**
+   * Payable: false
+   * Constant: true
+   * StateMutability: view
+   * Type: function
+   * @param account Type: address, Indexed: false
+   */
+  isAdmin(account: string, overrides?: ContractCallOverrides): Promise<boolean>;
+  /**
+   * Payable: false
+   * Constant: true
+   * StateMutability: view
+   * Type: function
    * @param owner Type: address, Indexed: false
    * @param operator Type: address, Indexed: false
    */
   isApprovedForAll(
     owner: string,
     operator: string,
+    overrides?: ContractCallOverrides
+  ): Promise<boolean>;
+  /**
+   * Payable: false
+   * Constant: true
+   * StateMutability: view
+   * Type: function
+   * @param account Type: address, Indexed: false
+   */
+  isUser(account: string, overrides?: ContractCallOverrides): Promise<boolean>;
+  /**
+   * Payable: false
+   * Constant: true
+   * StateMutability: view
+   * Type: function
+   * @param account Type: address, Indexed: false
+   */
+  isVerifier(
+    account: string,
     overrides?: ContractCallOverrides
   ): Promise<boolean>;
   /**
@@ -232,6 +335,19 @@ export interface NftMarketContract {
     tokenId: BigNumberish,
     overrides?: ContractCallOverrides
   ): Promise<string>;
+  /**
+   * Payable: false
+   * Constant: false
+   * StateMutability: nonpayable
+   * Type: function
+   * @param account Type: address, Indexed: false
+   * @param role Type: string, Indexed: false
+   */
+  removeRole(
+    account: string,
+    role: string,
+    overrides?: ContractTransactionOverrides
+  ): Promise<ContractTransaction>;
   /**
    * Payable: false
    * Constant: false
