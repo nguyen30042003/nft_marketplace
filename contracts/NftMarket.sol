@@ -3,8 +3,9 @@ pragma solidity >=0.4.22 <0.9.0;
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "../contracts/access/AccessManage.sol";
 
-contract NftMarket is ERC721URIStorage, Ownable {
+contract NftMarket is ERC721URIStorage, Ownable, AccessManage {
   using Counters for Counters.Counter;
 
   Counters.Counter private _listedItems;
@@ -60,6 +61,7 @@ contract NftMarket is ERC721URIStorage, Ownable {
   }
   
   function mintToken(string memory tokenURI, uint price) public payable returns (uint) {
+    require(isVerifier(msg.sender), "Only verifiers can access this");    
     require(!tokenURIExists(tokenURI), "Token URI already exists");
     require(msg.value == listingPrice, "Price must be equal to listing price");
     _tokenIds.increment();
