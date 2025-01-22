@@ -11,16 +11,16 @@ type OwnedNftsHookFactory = CryptoHookFactory<Nft[], UseOwnedNftsResponse>
 
 export type UseOwnedNftsHook = ReturnType<OwnedNftsHookFactory>
 
-export const hookFactory: OwnedNftsHookFactory = ({contract}) => () => {
+export const hookFactory: OwnedNftsHookFactory = ({copyrightContract}) => () => {
   const {data, ...swr} = useSWR(
-    contract ? "web3/useOwnedNfts" : null,
+    copyrightContract ? "web3/useOwnedNfts" : null,
     async () => {
       const nfts = [] as Nft[];
-      const coreNfts = await contract!.getOwnedNfts();
+      const coreNfts = await copyrightContract!.getOwnedNfts();
 
       for (let i = 0; i < coreNfts.length; i++) {
         const item = coreNfts[i];
-        const tokenURI = await contract!.tokenURI(item.tokenId);
+        const tokenURI = await copyrightContract!.tokenURI(item.tokenId);
         const metaRes = await fetch(tokenURI);
         const meta = await metaRes.json();
 
@@ -37,7 +37,7 @@ export const hookFactory: OwnedNftsHookFactory = ({contract}) => () => {
     }
   )
 
-  const _contract = contract;
+  const _contract = copyrightContract;
   const listNft = useCallback(async (tokenId: number, price: number) => {
     try {
       const result = await _contract!.placeNftOnSale(

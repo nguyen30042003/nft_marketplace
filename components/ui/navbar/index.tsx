@@ -22,7 +22,6 @@ export default function Navbar() {
   const { account } = useAccount();
   const { network } = useNetwork();
 
-
   return (
     <Disclosure as="nav" className="bg-gray-800">
       <div className="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
@@ -78,6 +77,11 @@ export default function Navbar() {
           <Walletbar
                   isInstalled={account.isInstalled}
                   isLoading={account.isLoading}
+                  isAdmin={account.isAdmin}
+                  isUser={account.isUser}
+                  isVerifier ={account.isVerifier}
+                  isRegistered ={account.isRegistered}
+                  isConnected={account.isConnected}
                   connect={account.connect}
                   account={account.data}
                 />

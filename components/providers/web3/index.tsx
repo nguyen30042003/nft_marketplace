@@ -5,6 +5,7 @@ import { setupHooks } from "@hooks/web3/setupHooks";
 import { MetaMaskInpageProvider } from "@metamask/providers";
 import { NftMarketContract } from "@_types/nftMarketContract";
 import { Props } from "@_types/interface";
+import { AccessManageContract } from "@_types/AccessManageContract";
 
 
 
@@ -32,16 +33,19 @@ const Web3Provider: FunctionComponent<Props> = ({children}) => {
     async function initWeb3() {
       try {
         const provider = new ethers.providers.Web3Provider(window.ethereum as any);
-        const contract =  await loadContract("NftMarket", provider);
+        const accessManageContract = await loadContract("AccessManage", provider);
+        const nftCopyrightContract = await loadContract("NftMarket", provider);
 
         const signer = provider.getSigner();
-        const signedContract = contract.connect(signer);
+        const signedAccessManageContract = accessManageContract.connect(signer);
+        const signedNftCopyrightContract = nftCopyrightContract.connect(signer);
         
         setTimeout(() => setGlobalListeners(window.ethereum), 500);
         setWeb3Api(createWeb3State({
           ethereum: window.ethereum,
           provider,
-          contract: signedContract as unknown as NftMarketContract,
+          copyrightContract: signedNftCopyrightContract as unknown as NftMarketContract,
+          accessContract: signedAccessManageContract as unknown as AccessManageContract,
           isLoading: false
         }))
       } catch(e: any) {
