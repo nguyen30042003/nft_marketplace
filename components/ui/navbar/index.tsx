@@ -84,6 +84,7 @@ export default function Navbar() {
                   isConnected={account.isConnected}
                   connect={account.connect}
                   account={account.data}
+                  isCheck={account.isCheck}
                 />
           </div>
         </div>

@@ -16,7 +16,7 @@ const BaseLayout: FunctionComponent<Props> = ({ children }) => {
 
   
 
-    if (account.isAdmin) {
+    if (account.isAdmin == true && account.isCheck == true) {
         return (
             <div className="h-screen flex">
               {/* Sidebar */}
@@ -32,7 +32,7 @@ const BaseLayout: FunctionComponent<Props> = ({ children }) => {
         );
     }
 
-    else if(account.isVerifier){
+    else if(account.isVerifier == true && account.isCheck == true){
         return (
             <div className="h-screen flex">
               {/* Sidebar */}

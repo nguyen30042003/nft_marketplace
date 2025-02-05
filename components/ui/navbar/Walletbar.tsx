@@ -15,6 +15,7 @@ type WalletbarProps = {
   isConnected: boolean;
   account: string | undefined;
   connect: () => void;
+  isCheck: boolean;
 };
 
 function classNames(...classes: string[]) {
@@ -31,8 +32,11 @@ const Walletbar: FunctionComponent<WalletbarProps> = ({
   isConnected,
   connect,
   account,
+  isCheck
 }) => {
   const router = useRouter();
+
+  
   if (isLoading) {
     return (
       <div>
@@ -47,15 +51,16 @@ const Walletbar: FunctionComponent<WalletbarProps> = ({
   }
 
 
+  console.log(isRegistered, isAdmin, isUser, isVerifier, isCheck)
+
   // Redirect to /register/create if not registered
-  if (isRegistered == false && isAdmin == false && isUser == false && isVerifier == false && isConnected == true) {
+  if (isRegistered == false && isAdmin == false && isUser == false && isVerifier == false && isConnected == true && isCheck == true) {
     router.push(`/register/create?account=${account}`);
     return null;
   }
   
-  
 
-  if(isRegistered){
+  if(isRegistered == true && isCheck == true){
     return (
       <div>
         <button
@@ -68,7 +73,43 @@ const Walletbar: FunctionComponent<WalletbarProps> = ({
       </div>
     );
   }
+  if (account && isUser) {
+    return (
+      <Menu as="div" className="ml-3 relative">
+        <div>
+          <Menu.Button className="bg-gray-800 flex text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white">
+            <span className="sr-only">Open user menu</span>
+            <img
+              className="h-8 w-8 rounded-full"
+              src="/images/default_user_image.png"
+              alt=""
+            />
+          </Menu.Button>
+        </div>
 
+        <Menu.Items className="z-10 origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none">
+          <Menu.Item>
+            {() => (
+              <button
+                disabled={true}
+                className="disabled:text-gray-500 text-xs block px-4 pt-2 text-gray-700">
+                {`0x${account[2]}${account[3]}${account[4]}....${account.slice(-4)}`}
+              </button>
+            )}
+          </Menu.Item>
+          <Menu.Item>
+            {({ active }) => (
+              <Link href="/profile" className={classNames(active ? 'bg-gray-100' : '', 'block px-4 py-2 text-sm text-gray-700')}>
+              Profile
+            </Link>
+            
+
+            )}
+          </Menu.Item>
+        </Menu.Items>
+      </Menu>
+    )
+  }
   if (isInstalled) {
     return (
       <div>
