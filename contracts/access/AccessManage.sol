@@ -48,26 +48,35 @@ contract AccessManage {
         address account,
         string memory name,
         string memory email,
-        string memory tokenURI
-    ) public onlyAdmin {
+        string memory tokenURI,
+        string memory role
+    ) public {
         require(account != address(0), "Invalid address");
         require(!users.has(account), "User already exists");
-
-        users.add(account);
         userInfo[account] = User(name, email, tokenURI);
-
+        if (keccak256(abi.encodePacked(role)) == keccak256("VERIFIER")) {
+            verifiers.add(account);
+        } else if (keccak256(abi.encodePacked(role)) == keccak256("ADMIN")) {
+            admins.add(account);
+        } else if (keccak256(abi.encodePacked(role)) == keccak256("USER")) {
+            users.add(account);
+        } else {
+            revert("Invalid role");
+        }
         emit UserAdded(account, name, email);
-        //emit RoleAssigned(account, "User");
+        //emit RoleAssigned(account, role);
     }
 
     // Assign a role
-    function assignRole(address account, string memory role) public onlyAdmin {
+    function assignRole(address account, string memory role) public {
         require(account != address(0), "Invalid address");
 
-        if (keccak256(abi.encodePacked(role)) == keccak256("Verifier")) {
+        if (keccak256(abi.encodePacked(role)) == keccak256("VERIFIER")) {
             verifiers.add(account);
-        } else if (keccak256(abi.encodePacked(role)) == keccak256("Admin")) {
+        } else if (keccak256(abi.encodePacked(role)) == keccak256("ADMIN")) {
             admins.add(account);
+        } else if (keccak256(abi.encodePacked(role)) == keccak256("USER")) {
+            users.add(account);
         } else {
             revert("Invalid role");
         }
