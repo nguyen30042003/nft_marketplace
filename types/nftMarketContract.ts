@@ -196,12 +196,14 @@ export interface NftMarketContract {
    * @param name Type: string, Indexed: false
    * @param email Type: string, Indexed: false
    * @param tokenURI Type: string, Indexed: false
+   * @param role Type: string, Indexed: false
    */
   addUser(
     account: string,
     name: string,
     email: string,
     tokenURI: string,
+    role: string,
     overrides?: ContractTransactionOverrides
   ): Promise<ContractTransaction>;
   /**

@@ -10,8 +10,6 @@ const menuItems = [
     title: "MENU",
     items: [
       { icon: "/images/home.png", label: "Dashboard", href: "/verifier/dashboard", visible: ["admin", "teacher", "student", "parent"] },
-      { icon: "/images/student.png", label: "Users", href: "/verifier/Users", visible: ["admin", "teacher"] },
-      { icon: "/images/parent.png", label: "Approve User", href: "/verifier/ApproveUsers", visible: ["admin", "teacher"] },
       { icon: "/images/subject.png", label: "Copyright", href: "/verifier/Copyrights", visible: ["admin", "teacher", "parent"] },
       { icon: "/images/lesson.png", label: "Reports", href: "/verifier/Reports", visible: ["admin", "teacher"] },
     ],

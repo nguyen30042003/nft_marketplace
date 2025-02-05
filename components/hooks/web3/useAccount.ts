@@ -14,6 +14,7 @@ type UseAccountResponse = {
   isVerifier: boolean;
   isRegistered: boolean;
   isConnected: boolean;
+  isCheck: boolean;
 };
 type AccountHookFactory = CryptoHookFactory<string, UseAccountResponse>
 
@@ -73,26 +74,26 @@ export const hookFactory: AccountHookFactory = ({ provider, copyrightContract, e
   }
 
 
-  const createAccount = async (account: string, name: string, email: string, tokenURI: string) => {
-    try {
-      const result = await copyrightContract!.addUser(account, name, email, tokenURI);
-      await toast.promise(
-        result!.wait(), {
-        pending: "Processing transaction",
-        success: "Nft is yours! Go to Profile page",
-        error: "Processing error"
-      }
-      );
-    } catch (e: any) {
-      console.error(e.message);
-    }
-  };
+  // const createAccount = async (account: string, name: string, email: string, tokenURI: string) => {
+  //   try {
+  //     const result = await copyrightContract!.addUser(account, name, email, tokenURI);
+  //     await toast.promise(
+  //       result!.wait(), {
+  //       pending: "Processing transaction",
+  //       success: "Nft is yours! Go to Profile page",
+  //       error: "Processing error"
+  //     }
+  //     );
+  //   } catch (e: any) {
+  //     console.error(e.message);
+  //   }
+  // };
 
   let [isAdmin, setIsAdmin] = useState(false);
   let [isUser, setIsUser] = useState(false);
   let [isVerifier, setIsVerifier] = useState(false);
   let [isRegistered, setIsRegistered] = useState(false);
-
+  let [isCheck, setIsCheck] = useState(false);
   const checkAccount = async () => {
     let responseIsAdmin = false;
     if (!data) {
@@ -106,7 +107,6 @@ export const hookFactory: AccountHookFactory = ({ provider, copyrightContract, e
       body: JSON.stringify({}), // Chuyển payload thành JSON
     });
 
-    console.log(existed)
 
     if (existed) {
       const apiUrl = `http://localhost:8081/api/v1/users/${data}/is-approved`;
@@ -147,12 +147,17 @@ export const hookFactory: AccountHookFactory = ({ provider, copyrightContract, e
       setIsUser(false);
       setIsRegistered(false)
     }
+
+
+    await setIsCheck(true);
   }
+
+
   checkAccount();
   
-  console.log(isAdmin, isRegistered)
 
   const isConnected = !!data;
+
   return {
     ...swr,
     data,
@@ -164,6 +169,7 @@ export const hookFactory: AccountHookFactory = ({ provider, copyrightContract, e
     isVerifier: isVerifier as boolean,
     isRegistered: isRegistered as boolean,
     isConnected: isConnected as boolean,
+    isCheck: isCheck as boolean,
     mutate,
     connect
   };
