@@ -36,7 +36,7 @@ const NftCreate: NextPage = () => {
       return;
     }
 
-    const file = e.target.files[0];
+    const file = e.target.files[0] ;
     const buffer = await file.arrayBuffer();
     const bytes = new Uint8Array(buffer);
     try {
