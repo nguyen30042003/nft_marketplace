@@ -23,6 +23,7 @@ contract NftMarket is ERC721URIStorage, Ownable, AccessManage {
     uint price;
     address creator;
     bool isListed;
+    uint status;
   }
 
   event NftItemCreated (
@@ -83,6 +84,11 @@ contract NftMarket is ERC721URIStorage, Ownable, AccessManage {
     _setTokenURI(tokenId, uri);
   }
 
+  function updateStatus(uint tokenId, uint status) public {
+    NftItem storage item = _idToNftItem[tokenId];
+    item.status = status;
+  }
+
 
 
   function getAllNftsOnSale() public view returns (NftItem[] memory) {
@@ -128,7 +134,8 @@ contract NftMarket is ERC721URIStorage, Ownable, AccessManage {
       tokenId,
       price,
       msg.sender,
-      true
+      true,
+      1
     );
 
     emit NftItemCreated(tokenId, price, msg.sender, true);
