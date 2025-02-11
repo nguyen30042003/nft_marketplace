@@ -61,6 +61,8 @@ export const hookFactory: ListedNftsHookFactory = ({copyrightContract}) => () =>
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [_contract])
 
+
+  
   return {
     ...swr,
     buyNft,

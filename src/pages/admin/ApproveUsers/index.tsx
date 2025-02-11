@@ -1,25 +1,25 @@
 import React, { useState } from "react";
 import BaseLayout from "@ui/layout/BaseLayout";
 import Table from "@ui/table";
-import DatePicker from "react-datepicker"; // Đừng quên cài `react-datepicker` nếu chưa có
+import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import { useNotApprovedUsers, useApproveUser } from "components/fectData/fetch_user";
+import { create_copyright } from 'components/fectData/fetch_copyright';
+import { useWeb3 } from "@providers/web3";
 
-interface User {
-  id: number;
-  username: string;
-  email: string;
-  address: string;
-  role: "User" | "Verifier";
-  createdAt: Date;
-}
 
 const ListUser: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [selectedRole, setSelectedRole] = useState<string>("all");
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedUser, setSelectedUser] = useState<any | null>(null);
+  const [approvedAddress, setApprovedAddress] = useState<string | null>(null);
 
+  const { users, isLoading, isError } = useNotApprovedUsers();
+  const { isLoading: approving, isError: approveError } = useApproveUser(approvedAddress || "");
+
+  const { ethereum, copyrightContract } = useWeb3();
   const columns = [
     { header: "Username", accessor: "username", className: "text-left" },
     { header: "Email", accessor: "email", className: "text-left" },
@@ -29,69 +29,24 @@ const ListUser: React.FC = () => {
     { header: "Actions", accessor: "actions", className: "text-center" },
   ];
 
-  const data: User[] = [
-    {
-      id: 1,
-      username: "johndoe",
-      email: "john@example.com",
-      address: "123 Main St",
-      role: "User",
-      createdAt: new Date("2023-12-01"),
-    },
-    {
-      id: 2,
-      username: "janedoe",
-      email: "jane@example.com",
-      address: "456 Oak St",
-      role: "Verifier",
-      createdAt: new Date("2023-11-15"),
-    },
-    {
-      id: 3,
-      username: "alicew",
-      email: "alice@example.com",
-      address: "789 Pine St",
-      role: "User",
-      createdAt: new Date("2023-12-10"),
-    },
-    {
-      id: 4,
-      username: "bobbys",
-      email: "bobby@example.com",
-      address: "101 Maple Ave",
-      role: "Verifier",
-      createdAt: new Date("2023-12-05"),
-    },
-    {
-      id: 5,
-      username: "charlesk",
-      email: "charles@example.com",
-      address: "202 Elm St",
-      role: "User",
-      createdAt: new Date("2023-11-20"),
-    },
-  ];
+  const transformedData =
+    users?.map((user) => ({
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      address: user.address,
+      role: user.role,
+      createdAt: new Date(user.createAt),
+    })) || [];
 
-  const handlePreview = (user: User) => {
-    setSelectedUser(user);
-  };
-
-  const handleDelete = (id: number) => {
-    console.log(`Delete user with ID: ${id}`);
-  };
-
-  const handleApprove = (id: number) => {
-    console.log(`Approve user with ID: ${id}`);
-  };
-
-  const filteredData = data.filter((item) => {
+  const filteredData = transformedData.filter((item) => {
     const matchesSearchTerm =
       item.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.address.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesRole =
-      selectedRole === "all" || item.role === selectedRole;
+      selectedRole === "all" || item.role.toLowerCase() === selectedRole;
 
     const matchesDateRange =
       (!startDate || item.createdAt >= startDate) &&
@@ -100,12 +55,51 @@ const ListUser: React.FC = () => {
     return matchesSearchTerm && matchesRole && matchesDateRange;
   });
 
+  const handlePreview = (user: any) => {
+    setSelectedUser(user); // Lưu user được chọn để hiển thị form preview
+  };
+
+  const handleApprove = async (address: string, name: string, email: string, role: string) => {
+    try {
+
+
+      const tx = await copyrightContract?.addUser(address, name, email, "", role);
+      console.log(address, name, email, role)
+      
+      // const txx = await copyrightContract?.isUser(address);
+      // console.log(txx)
+      setApprovedAddress(address);
+      await window.location.reload();
+    } catch (error) {
+      console.error(`Error approving user with address: ${address}`, error);
+    }
+  };
+
+  const handleClosePreview = () => {
+    setSelectedUser(null); // Đóng form preview
+  };
+
+  if (isLoading) {
+    return (
+      <BaseLayout>
+        <p>Loading...</p>
+      </BaseLayout>
+    );
+  }
+
+  if (isError) {
+    return (
+      <BaseLayout>
+        <p>Error loading data...</p>
+      </BaseLayout>
+    );
+  }
+
   return (
     <BaseLayout>
       <div className="p-4">
         <h1 className="text-lg font-bold mb-4">User Table</h1>
         <div className="mb-4 grid grid-cols-1 lg:grid-cols-4 gap-4">
-          {/* Search */}
           <input
             type="text"
             placeholder="Search users..."
@@ -113,8 +107,6 @@ const ListUser: React.FC = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="p-2 border border-gray-300 rounded"
           />
-
-          {/* Filter by Role */}
           <select
             value={selectedRole}
             onChange={(e) => setSelectedRole(e.target.value)}
@@ -124,16 +116,12 @@ const ListUser: React.FC = () => {
             <option value="user">User</option>
             <option value="verifier">Verifier</option>
           </select>
-
-          {/* Filter by Start Date */}
           <DatePicker
             selected={startDate}
             onChange={(date) => setStartDate(date)}
             placeholderText="Start Date"
             className="p-2 border border-gray-300 rounded"
           />
-
-          {/* Filter by End Date */}
           <DatePicker
             selected={endDate}
             onChange={(date) => setEndDate(date)}
@@ -164,16 +152,11 @@ const ListUser: React.FC = () => {
           )}
         />
 
+        {/* Form hiển thị Preview */}
         {selectedUser && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-            <div className="bg-white p-6 rounded shadow-lg w-96 relative">
-              <button
-                className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
-                onClick={() => setSelectedUser(null)}
-              >
-                &times;
-              </button>
-              <h2 className="text-lg font-bold mb-4">User Details</h2>
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-10">
+            <div className="bg-white p-6 rounded shadow-lg">
+              <h2 className="text-xl font-bold mb-4">User Details</h2>
               <p>
                 <strong>Username:</strong> {selectedUser.username}
               </p>
@@ -189,18 +172,25 @@ const ListUser: React.FC = () => {
               <p>
                 <strong>Created At:</strong> {selectedUser.createdAt.toLocaleDateString()}
               </p>
-              <div className="mt-4 flex justify-end space-x-2">
+              <div className="mt-4">
                 <button
-                  className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-                  onClick={() => handleDelete(selectedUser.id)}
+                  className={`${
+                    approving && approvedAddress === selectedUser.address
+                      ? "bg-gray-500 cursor-not-allowed"
+                      : "bg-green-500 hover:bg-green-600"
+                  } text-white px-4 py-2 rounded`}
+                  disabled={approving && approvedAddress === selectedUser.address}
+                  onClick={() => handleApprove(selectedUser.address, selectedUser.username, selectedUser.email, selectedUser.role)}
                 >
-                  Delete
+                  {approving && approvedAddress === selectedUser.address
+                    ? "Approving..."
+                    : "Approve"}
                 </button>
                 <button
-                  className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-                  onClick={() => handleApprove(selectedUser.id)}
+                  className="ml-4 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+                  onClick={handleClosePreview}
                 >
-                  Approve
+                  Close
                 </button>
               </div>
             </div>
@@ -212,3 +202,4 @@ const ListUser: React.FC = () => {
 };
 
 export default ListUser;
+

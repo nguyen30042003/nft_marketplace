@@ -62,9 +62,9 @@ contract NftMarket is ERC721URIStorage, Ownable, AccessManage {
   }
   
   function mintToken(string memory tokenURI, uint price) public payable returns (uint) {
-    require(isVerifier(msg.sender), "Only verifiers can access this");    
+    //require(isVerifier(msg.sender), "Only verifiers can access this");    
     require(!tokenURIExists(tokenURI), "Token URI already exists");
-    require(msg.value == listingPrice, "Price must be equal to listing price");
+   // require(msg.value == listingPrice, "Price must be equal to listing price");
     _tokenIds.increment();
     _listedItems.increment();
 
