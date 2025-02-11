@@ -19,31 +19,21 @@ contract NftMarket is ERC721URIStorage, Ownable, AccessManage {
     mapping(uint => uint) private _idToOwnedIndex;
     mapping(string => uint256) private _uriToTokenId;
 
-    struct NftItem {
-        uint tokenId;
-        uint price;
-        address creator;
-        bool isListed;
-        Status status;
-    }
-    enum Status {
-        PENDING,
-        INCOMPELETED,
-        REJECTED,
-        APPROVED,
-        PUBLISHED
-    }
-    event NftItemCreated(
-        uint tokenId,
-        uint price,
-        address creator,
-        bool isListed,
-        Status status
-    );
+  struct NftItem {
+    uint tokenId;
+    uint price;
+    address creator;
+    bool isListed;
+    uint status;
+  }
 
-    event StatusUpdated(uint tokenId, Status newStatus);
-    
-    uint public listingPrice = 0.025 ether;
+  event NftItemCreated (
+    uint tokenId,
+    uint price,
+    address creator,
+    bool isListed
+  );
+  uint public listingPrice = 0.025 ether;
 
     constructor() ERC721("CreaturesNFT", "CNFT") {}
 
@@ -88,15 +78,22 @@ contract NftMarket is ERC721URIStorage, Ownable, AccessManage {
 
         _setTokenURI(newTokenId, tokenURI);
 
-        _createNftItem(newTokenId, price);
-        _usedTokenURIs[tokenURI] = true;
-        _uriToTokenId[tokenURI] = newTokenId;
-        return newTokenId;
-    }
+    _createNftItem(newTokenId, price);
+    _usedTokenURIs[tokenURI] = true;
+    return newTokenId;
+  }
 
-    function updateUri(uint tokenId, string memory uri) public {
-        _setTokenURI(tokenId, uri);
-    }
+
+  function updateUri(uint tokenId, string memory uri) public {
+    _setTokenURI(tokenId, uri);
+  }
+
+  function updateStatus(uint tokenId, uint status) public {
+    NftItem storage item = _idToNftItem[tokenId];
+    item.status = status;
+  }
+
+
 
     function getAllNftsOnSale() public view returns (NftItem[] memory) {
         uint allItemsCounts = totalSupply();
@@ -132,13 +129,13 @@ contract NftMarket is ERC721URIStorage, Ownable, AccessManage {
     function _createNftItem(uint tokenId, uint price) private {
         require(price > 0, "Price must be at least 1 wei");
 
-        _idToNftItem[tokenId] = NftItem(
-            tokenId,
-            price,
-            msg.sender,
-            true,
-            Status.PENDING
-        );
+    _idToNftItem[tokenId] = NftItem(
+      tokenId,
+      price,
+      msg.sender,
+      true,
+      1
+    );
 
         emit NftItemCreated(tokenId, price, msg.sender, true,  Status.PENDING);
     }
