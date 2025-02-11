@@ -110,11 +110,15 @@ export type NftMarketContractMethodNames =
   | 'totalSupply'
   | 'tokenByIndex'
   | 'mintToken'
+  | 'updateUri'
   | 'getAllNftsOnSale'
   | 'getOwnedNfts'
+  | 'transferTo'
   | 'buyNft'
   | 'tokenOfOwnerByIndex'
-  | 'placeNftOnSale';
+  | 'placeNftOnSale'
+  | 'updateStatus'
+  | 'getTokenIdByURI';
 export interface ApprovalEventEmittedResponse {
   owner: string;
   approved: string;
@@ -137,6 +141,7 @@ export interface NftItemCreatedEventEmittedResponse {
   price: BigNumberish;
   creator: string;
   isListed: boolean;
+  status: BigNumberish;
 }
 export interface OwnershipTransferredEventEmittedResponse {
   previousOwner: string;
@@ -178,6 +183,8 @@ export interface NftitemResponse {
   2: string;
   isListed: boolean;
   3: boolean;
+  status: BigNumber;
+  4: BigNumber;
 }
 export interface NftMarketContract {
   /**
@@ -532,6 +539,19 @@ export interface NftMarketContract {
   ): Promise<ContractTransaction>;
   /**
    * Payable: false
+   * Constant: false
+   * StateMutability: nonpayable
+   * Type: function
+   * @param tokenId Type: uint256, Indexed: false
+   * @param uri Type: string, Indexed: false
+   */
+  updateUri(
+    tokenId: BigNumberish,
+    uri: string,
+    overrides?: ContractTransactionOverrides
+  ): Promise<ContractTransaction>;
+  /**
+   * Payable: false
    * Constant: true
    * StateMutability: view
    * Type: function
@@ -546,6 +566,19 @@ export interface NftMarketContract {
    * Type: function
    */
   getOwnedNfts(overrides?: ContractCallOverrides): Promise<NftitemResponse[]>;
+  /**
+   * Payable: false
+   * Constant: false
+   * StateMutability: nonpayable
+   * Type: function
+   * @param tokenId Type: uint256, Indexed: false
+   * @param user Type: address, Indexed: false
+   */
+  transferTo(
+    tokenId: BigNumberish,
+    user: string,
+    overrides?: ContractTransactionOverrides
+  ): Promise<ContractTransaction>;
   /**
    * Payable: true
    * Constant: false
@@ -583,4 +616,28 @@ export interface NftMarketContract {
     newPrice: BigNumberish,
     overrides?: ContractTransactionOverrides
   ): Promise<ContractTransaction>;
+  /**
+   * Payable: false
+   * Constant: false
+   * StateMutability: nonpayable
+   * Type: function
+   * @param tokenId Type: uint256, Indexed: false
+   * @param newStatus Type: uint256, Indexed: false
+   */
+  updateStatus(
+    tokenId: BigNumberish,
+    newStatus: BigNumberish,
+    overrides?: ContractTransactionOverrides
+  ): Promise<ContractTransaction>;
+  /**
+   * Payable: false
+   * Constant: true
+   * StateMutability: view
+   * Type: function
+   * @param tokenURI Type: string, Indexed: false
+   */
+  getTokenIdByURI(
+    tokenURI: string,
+    overrides?: ContractCallOverrides
+  ): Promise<BigNumber>;
 }

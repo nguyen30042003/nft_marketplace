@@ -1,4 +1,5 @@
 
+import { CopyRight, CopyRightRequest, Status } from "@_types/nft";
 import apiClient from "components/service/apiClient";
 import useSWR from "swr";
 
@@ -67,10 +68,23 @@ export const create_copyright = async (copyrightData: CopyRightRequest): Promise
 // Hàm fetch bản quyền theo ID
 export const update_status_copyright_by_id = async (id: string, status: string): Promise<CopyRight> => {
   const apiUrl = `http://localhost:8081/api/v1/orders/updateStatus/${id}`;
-
+  console.log(JSON.stringify({ status }));
   try {
-    const response = await apiClient(apiUrl, { method: "PATCH", body: JSON.stringify({ status }),});
-    console.log(response);
+    const response = await apiClient(apiUrl, { method: "POST", body: JSON.stringify({ status }),});
+    
+    return response;
+  } catch (error) {
+    console.error("Error in fetch_copyright_by_id:", error);
+    throw error;
+  }
+};
+
+export const update_token_copyright = async (id: string, tokenId: Long): Promise<CopyRight> => {
+  const apiUrl = `http://localhost:8081/api/v1/orders/updateTokenId/${id}`;
+  console.log(JSON.stringify({ status }));
+  try {
+    const response = await apiClient(apiUrl, { method: "POST", body: JSON.stringify({ tokenId }),});
+    
     return response;
   } catch (error) {
     console.error("Error in fetch_copyright_by_id:", error);

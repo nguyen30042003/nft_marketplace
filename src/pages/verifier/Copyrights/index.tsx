@@ -5,9 +5,14 @@ import Table from "@ui/table";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
-import useSWR from "swr";
-import { fetch_all_copyright } from "components/fectData/fetch_copyright";
+import useSWR, { mutate } from "swr";
+import { fetch_all_copyright, update_status_copyright_by_id, update_token_copyright } from "components/fectData/fetch_copyright";
 import router from "next/router";
+import { Status } from "@_types/nft";
+import { useWeb3 } from "@providers/web3";
+import { ethers } from "ethers";
+import { toast } from "react-toastify";
+import Long from "long";
 
 
 
@@ -17,6 +22,8 @@ const ListCopyright: React.FC = () => {
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
+  const { ethereum, copyrightContract } = useWeb3();
+
 
   // Lấy dữ liệu bản quyền từ API
   const { data: copyrights, error, isLoading } = useSWR("fetch_all_copyright", fetch_all_copyright);
@@ -38,6 +45,7 @@ const ListCopyright: React.FC = () => {
       owner: item.user.address,
       status: item.status,
       createdAt: new Date(item.metaData.createAt),
+      uri: item.metaData.uri
     })) || [];
 
   const filteredData = transformedData.filter((item) => {
@@ -58,6 +66,41 @@ const ListCopyright: React.FC = () => {
   const handlePreview = (copyright: any) => {
     router.push(`/verifier/Copyrights/${copyright.id}`);
   };
+
+  const handleAccept = async (id: string, status: string, nftURI: string) => {
+    try {
+      const tx = await copyrightContract?.mintToken(
+        nftURI,
+        ethers.utils.parseEther("2"), {
+        value: ethers.utils.parseEther(0.025.toString())
+      }
+      );
+        const response = await update_status_copyright_by_id(id, status)
+
+
+        // const newTokenId = await copyrightContract?.getTokenIdByURI(nftURI);
+        // if (!newTokenId) {
+        //   console.error("Error: newTokenId is undefined");
+        //   return;
+        // }
+        // console.log(newTokenId)
+        // const tokenIdLong = Long.fromString(newTokenId.toString()); // Chuyển đổi BigNumber -> Long
+        // const temp = await update_token_copyright(id, tokenIdLong);
+      
+        // await toast.promise(
+        //   tx!.wait(), {
+        //   pending: "Uploading blockchain",
+        //   success: "Uploaded success",
+        //   error: "Upload error"
+        // }
+      //);
+        
+    } catch (error) {
+      console.error("Error accepting copyright:", error);
+      alert("Failed to accept copyright.");
+    }
+  };
+
 
   if (isLoading) {
     return (
@@ -93,8 +136,12 @@ const ListCopyright: React.FC = () => {
             className="p-2 border border-gray-300 rounded"
           >
             <option value="all">All Status</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
+            <option value="Uploaded">Uploaded</option>
+            <option value="Pending">Pending</option>
+            <option value="Incomplete">Incomplete</option>
+            <option value="Published">Published</option>
+            <option value="Approved">Approved</option>
+            <option value="Rejected">Rejected</option>
           </select>
           <DatePicker
             selected={startDate}
@@ -121,16 +168,26 @@ const ListCopyright: React.FC = () => {
               <td className="px-4 py-2">{item.status}</td>
               <td className="px-4 py-2">{item.createdAt.toLocaleDateString()}</td>
               <td className="px-4 py-2 text-center">
-                <button
-                  className="text-blue-500 hover:underline"
-                  onClick={() => handlePreview(item)}
-                >
-                  Preview
-                </button>
+                {item.status === "UPLOADED" ? (
+                  <button
+                    className="text-green-500 hover:underline"
+                    onClick={() => handleAccept(item.id, Status.PENDING, item.uri)}
+                  >
+                    Accept
+                  </button>
+                ) : (
+                  <button
+                    className="text-blue-500 hover:underline"
+                    onClick={() => handlePreview(item)}
+                  >
+                    Preview
+                  </button>
+                )}
               </td>
             </>
           )}
         />
+
       </div>
     </BaseLayout>
   );

@@ -72,6 +72,7 @@ export default function UserDetailPage() {
                             <p><strong>Email:</strong> {copyrights.user.email}</p>
                             <p><strong>Title:</strong> {copyrights.metaData.name}</p>
                             <p><strong>Form:</strong> {copyrights.metaData.applicationForm}</p>
+                            <p><strong>Samples:</strong> {copyrights.metaData.samples}</p>
                             <p>
                                 <strong>Created At:</strong>
                                 {new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit", year: "2-digit" }).format(new Date(copyrights.metaData.createAt))}
@@ -85,14 +86,16 @@ export default function UserDetailPage() {
                                 style={{ padding: "10px", borderRadius: "5px", fontSize: "16px" }}
                             >
                                 <option value="">Select Status</option>
+                                <option value="Uploaded">Uploaded</option>
                                 <option value="Pending">Pending</option>
+                                <option value="Incomplete">Lack Information</option>
+                                <option value="Published">Published</option>
                                 <option value="Approved">Approved</option>
                                 <option value="Rejected">Rejected</option>
-                                <option value="Lack Information">Lack Information</option>
                             </select>
 
                             {/* If "Rejected" or "Lack Information" is selected, show form for email */}
-                            {(newStatus === "Rejected" || newStatus === "Lack Information") && (
+                            {(newStatus === "Rejected" || newStatus === "Incomplete") && (
                                 <div>
                                     <p><strong>Email to send:</strong> {copyrights.user.email}</p>
                                     <p><strong>Subject:</strong> {newStatus === "Rejected" ? "Rejection Notice " : "Information Missing"}</p>

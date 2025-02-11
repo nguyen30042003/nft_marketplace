@@ -7,12 +7,12 @@ import { Switch } from '@headlessui/react'
 import Link from 'next/link'
 import axios from 'axios';
 import { useWeb3 } from '@providers/web3';
-import { NftMeta, PinataRes } from '@_types/nft';
+import { CopyRightRequest, NftMeta, PinataRes, Status } from '@_types/nft';
 import { ethers } from 'ethers';
 import { toast } from "react-toastify";
 import { create_copyright } from 'components/fectData/fetch_copyright';
 
-const ALLOWED_FIELDS = ["name", "description", "image", "application_form"];
+const ALLOWED_FIELDS = ["name", "description", "samples", "application_form"];
 
 const NftCreate: NextPage = () => {
   const { ethereum, copyrightContract } = useWeb3();
@@ -22,8 +22,8 @@ const NftCreate: NextPage = () => {
   const [nftMeta, setNftMeta] = useState<NftMeta>({
     name: "",
     description: "",
-    image: "",
-    application_form: ""
+    samples: "",
+    applicationForm: "",
   });
 
   const [fileName, setFileName] = useState<string | null>(null);
@@ -59,7 +59,7 @@ const NftCreate: NextPage = () => {
       console.log(`${process.env.NEXT_PUBLIC_PINATA_DOMAIN}/ipfs/${data.IpfsHash}`)
       setNftMeta({
         ...nftMeta,
-        image: `${process.env.NEXT_PUBLIC_PINATA_DOMAIN}/ipfs/${data.IpfsHash}`
+        samples: `${process.env.NEXT_PUBLIC_PINATA_DOMAIN}/ipfs/${data.IpfsHash}`
       });
     } catch (e: any) {
       console.error(e.message);
@@ -95,7 +95,7 @@ const NftCreate: NextPage = () => {
       console.log(`${process.env.NEXT_PUBLIC_PINATA_DOMAIN}/ipfs/${data.IpfsHash}`)
       setNftMeta({
         ...nftMeta,
-        application_form: `${process.env.NEXT_PUBLIC_PINATA_DOMAIN}/ipfs/${data.IpfsHash}`
+        applicationForm: `${process.env.NEXT_PUBLIC_PINATA_DOMAIN}/ipfs/${data.IpfsHash}`
       });
 
       // Cập nhật tên file vào state
@@ -157,27 +157,24 @@ const NftCreate: NextPage = () => {
       const nftRes = await axios.get(nftURI);
       const content = nftRes.data;
 
-      Object.keys(content).forEach(key => {
-        if (!ALLOWED_FIELDS.includes(key)) {
-          throw new Error("Invalid Json structure");
-        }
-      })
       const accounts = await ethereum?.request({ method: "eth_requestAccounts" }) as string[];
       const userAddress = accounts[0];
 
       const copyrightData: CopyRightRequest = {
-        status: "INACTIVE",  // Or any other appropriate status based on your flow
+        status: Status.UPLOADED, // Or any other appropriate status based on your flow
         userAddress: userAddress,
         metaData: {
+          uri: nftURI,
           name: nftMeta.name,
-          samples: nftMeta.image,
-          applicationForm: nftMeta.application_form,
-          createAt: ""
-        }
+          description: nftMeta.description,
+          samples: nftMeta.samples,
+          applicationForm: nftMeta.applicationForm,
+          createAt: ''
+        },
+        tokenId: "",
       };
 
       console.log(copyrightData)
-      // Create the copyright using the backend API
       const response = await create_copyright(copyrightData);
 
       
@@ -342,8 +339,8 @@ const NftCreate: NextPage = () => {
                       </p>
                     </div>
                     {/* Has Image? */}
-                    {nftMeta.image ?
-                      <img src={nftMeta.image} alt="" className="h-40" /> :
+                    {nftMeta.samples ?
+                      <img src={nftMeta.samples} alt="" className="h-40" /> :
                       <div>
                         <label className="block text-sm font-medium text-gray-700">Image</label>
                         <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
