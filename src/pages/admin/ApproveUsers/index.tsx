@@ -62,7 +62,7 @@ const ListUser: React.FC = () => {
   const handleApprove = async (address: string, name: string, email: string, role: string) => {
     try {
 
-
+      console.log(address, name, email, role)
       const tx = await copyrightContract?.addUser(address, name, email, "", role);
       console.log(address, name, email, role)
       

@@ -8,7 +8,6 @@ export interface ApiOptions {
 
 const apiClient = async (url: string, options: ApiOptions) => {
   const { method, body, token } = options;
-
   const config: AxiosRequestConfig = {
     method: method as any,
     url: url,
@@ -18,15 +17,11 @@ const apiClient = async (url: string, options: ApiOptions) => {
     },
     data: body,
   };
-  
   try {
     const response = await axios(config);
     return response.data;
-  } catch (error: any) {
+  } catch (error) {
     console.error("API error:", error);
-    throw new Error(
-      error.response?.data?.message || "An error occurred while calling the API"
-    );
   }
 };
 

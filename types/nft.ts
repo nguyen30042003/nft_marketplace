@@ -2,10 +2,11 @@
 export enum Status {
   UPLOADED = "UPLOADED",
   PENDING = "PENDING",
-  INCOMPLETED = "INCOMPLETED",
+  INCOMPLETE = "INCOMPLETE",
   REJECTED = "REJECTED",
   APPROVED = "APPROVED",
   PUBLISHED = "PUBLISHED",
+  PAID = "PAID"
 }
 
 export type Trait = "attack" | "health" | "speed";
@@ -22,6 +23,7 @@ export type NftMeta = {
   samples: string;
   applicationForm: string;
   createAt: string;
+  updateAt: string;
 };
 
 export type NftCore = {
@@ -50,6 +52,7 @@ export type PinataRes = {
 
 // User structure
 export interface User {
+  id: string,
   username: string;
   address: string;
   email: string;
@@ -63,16 +66,60 @@ export interface CopyRight {
   status: Status; // Sử dụng enum Status
   user: User;
   metaData: NftMeta; // Sử dụng lại NftMeta để tránh trùng lặp
-  tokenId: string
+  tokenId: string,
+  verifierAddress: string,
+  isTransfer: Boolean
 }
 
 export interface CopyRightRequest {
   status: Status; 
   userAddress: String;
   metaData: NftMeta;
-  tokenId: String
+  tokenId: String,
+  verifierAddress: String
 }
 
 
 // Array of CopyRight entities
 export type CopyRights = CopyRight[];
+
+export enum TransactionStatus {
+  REQUESTED = "REQUESTED",
+  PENDING = "PENDING",
+  PAYMENT_REQUIRED = "PAYMENT_REQUIRED",
+  PAYMENT_COMPLETED = "PAYMENT_COMPLETED",
+  COMPLETED = "COMPLETED",
+  CANCELLED = "CANCELLED"
+}
+
+
+export interface TransferCopyRight {
+  id: number,
+  fromUserId: number;
+  toUserId: number;
+  orderId: number;
+  verifyAddress: string;
+  price: number;
+  status: TransactionStatus;
+}
+
+export interface TransferCopyRightRequest {
+  fromUserId: number;
+  toUserId: number;
+  orderId: number;
+  verifyAddress: string;
+  price: number;
+  status: TransactionStatus;
+}
+
+export interface TransferCopyRightResponse {
+  id: number,
+  orderId: number,
+  fromUserAddress: string;
+  toUserAddress: string;
+  title: string;
+  price: number;
+  status: TransactionStatus;
+  createAt: string;
+  updateAt: string;
+}

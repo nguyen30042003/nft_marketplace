@@ -145,7 +145,7 @@ const NftList: FunctionComponent = () => {
         {/* Hình ảnh */}
         <div className="aspect-w-1 aspect-h-1">
           <img
-            src={nft.meta.image}
+            src={nft.meta.samples}
             alt=""
             className="object-cover w-full h-full pointer-events-none group-hover:opacity-75"
           />
@@ -177,7 +177,7 @@ const NftList: FunctionComponent = () => {
             >
               &times;
             </button>
-            <div key={activeNft.meta.image} className="flex flex-col rounded-lg shadow-lg overflow-hidden"> <NftItem item={activeNft} buyNft={nfts.buyNft} /> </div>
+            <div key={activeNft.meta.samples} className="flex flex-col rounded-lg shadow-lg overflow-hidden"> <NftItem item={activeNft} buyNft={nfts.buyNft} /> </div>
           </div>
         </div>
       )}

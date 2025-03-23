@@ -11,6 +11,7 @@ const menuItems = [
     items: [
       { icon: "/images/home.png", label: "Dashboard", href: "/verifier/dashboard", visible: ["admin", "teacher", "student", "parent"] },
       { icon: "/images/subject.png", label: "Copyright", href: "/verifier/Copyrights", visible: ["admin", "teacher", "parent"] },
+      { icon: "/images/parent.png", label: "Transfer Copyright", href: "/verifier/Transfer", visible: ["admin", "teacher", "parent"] },
       { icon: "/images/lesson.png", label: "Reports", href: "/verifier/Reports", visible: ["admin", "teacher"] },
     ],
   },

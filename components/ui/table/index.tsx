@@ -24,12 +24,22 @@ const Table = ({
         </tr>
       </thead>
       <tbody>
-        {data.map((item, index) => (
-          <tr key={index} className="border-b border-gray-300 hover:bg-gray-50">
-            {renderRow(item)}
-          </tr>
-        ))}
+        {data.map((item, index) => {
+          let rowClass = "";
+          if (item.status === "PUBLISHED") {
+            rowClass = "bg-yellow-100"; // Màu vàng cho Published
+          } else if (item.status === "REJECTED") {
+            rowClass = "bg-red-100"; // Màu đỏ cho Rejected
+          }
+
+          return (
+            <tr key={index} className={`border-b border-gray-300 hover:bg-gray-50 ${rowClass}`}>
+              {renderRow(item)}
+            </tr>
+          );
+        })}
       </tbody>
+
     </table>
   );
 };

@@ -13,6 +13,7 @@ import { useWeb3 } from "@providers/web3";
 import { ethers } from "ethers";
 import { toast } from "react-toastify";
 import Long from "long";
+import { fetch_all_transfer_copyright_by_verifier } from "components/fectData/transfer_copyright";
 
 
 
@@ -46,51 +47,49 @@ const ListCopyright: React.FC = () => {
       connectWallet();
   }, []);
 
-  const { data: copyrights, error, isLoading } = useSWR(
+  const { data: transfers, error, isLoading } = useSWR(
       userAddress ? ["get_copyright_by_verifier", userAddress] : null, 
-      () => fetch_all_copyright_by_verifier(userAddress!)
+      () => fetch_all_transfer_copyright_by_verifier(userAddress!)
   );
-
 
   const columns = [
     { header: "ID", accessor: "id", className: "text-left" },
     { header: "Title", accessor: "title", className: "text-left" },
     { header: "Owner", accessor: "owner", className: "text-left" },
-    { header: "Status", accessor: "status", className: "text-left" },
-    { header: "Update At", accessor: "updateAt", className: "text-left" },
-    { header: "Created At", accessor: "createdAt", className: "text-left" },
+    { header: "Receiver", accessor: "Receiver", className: "text-left" },
+    { header: "Proxy Payment", accessor: "Proxy Payment", className: "text-left" },
+    { header: "Status", accessor: "Status", className: "text-left" },
     { header: "Actions", accessor: "actions", className: "text-center" },
   ];
 
   // Chuyển đổi dữ liệu API thành dữ liệu phù hợp với UI
   const transformedData =
-    copyrights?.map((item) => ({
+      transfers?.map((item) => ({
       id: item.id,
-      title: item.metaData.name,
-      owner: item.user.address,
-      status: item.status,
-      createdAt: new Date(item.metaData.createAt),
-      updateAt: new Date(item.metaData.updateAt),
-      uri: item.metaData.uri
+      fromUserAddress: item.fromUserAddress,
+      toUserAddress: item.toUserAddress,
+      title: item.title,
+      price: item.price,
+      status: item.status
     })) || [];
 
-  const filteredData = transformedData.filter((item) => {
-    const matchesSearchTerm =
-      item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.owner.toLowerCase().includes(searchTerm.toLowerCase());
+  // const filteredData = transformedData.filter((item) => {
+  //   const matchesSearchTerm =
+  //     item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  //     item.owner.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesStatus =
-      selectedStatus === "all" || item.status.toLowerCase() === selectedStatus;
+  //   const matchesStatus =
+  //     selectedStatus === "all" || item.status.toLowerCase() === selectedStatus;
 
-    const matchesDateRange =
-      (!startDate || item.createdAt >= startDate) &&
-      (!endDate || item.createdAt <= endDate);
+  //   const matchesDateRange =
+  //     (!startDate || item.createdAt >= startDate) &&
+  //     (!endDate || item.createdAt <= endDate);
 
-    return matchesSearchTerm && matchesStatus && matchesDateRange;
-  });
+  //   return matchesSearchTerm && matchesStatus && matchesDateRange;
+  // });
 
-  const handlePreview = (copyright: any) => {
-    router.push(`/verifier/Copyrights/${copyright.id}`);
+  const handlePreview = (transferCopyright: any) => {
+    router.push(`/verifier/Transfer/${transferCopyright.id}`);
   };
 
   const handleAccept = async (id: number, status: string, nftURI: string) => {
@@ -169,7 +168,7 @@ const ListCopyright: React.FC = () => {
   return (
     <BaseLayout>
       <div className="p-4">
-        <h1 className="text-lg font-bold mb-4">Copyright Table</h1>
+        <h1 className="text-lg font-bold mb-4">Transfer Copyright Request</h1>
         <div className="mb-4 grid grid-cols-1 lg:grid-cols-4 gap-4">
           <input
             type="text"
@@ -207,15 +206,15 @@ const ListCopyright: React.FC = () => {
 
         <Table
           columns={columns}
-          data={filteredData}
+          data={transformedData}
           renderRow={(item) => (
             <>
               <td className="px-4 py-2">{item.id}</td>
               <td className="px-4 py-2">{item.title}</td>
-              <td className="px-4 py-2">{item.owner}</td>
+              <td className="px-4 py-2">{item.fromUserAddress}</td>
+              <td className="px-4 py-2">{item.toUserAddress}</td>
+              <td className="px-4 py-2">{item.price}</td>
               <td className="px-4 py-2">{item.status}</td>
-              <td className="px-4 py-2">{item.createdAt.toLocaleDateString()}</td>
-              <td className="px-4 py-2">{item.updateAt.toLocaleDateString()}</td>
               <td className="px-4 py-2 text-center">
                 {item.status === "UPLOADED" ? (
                   <button

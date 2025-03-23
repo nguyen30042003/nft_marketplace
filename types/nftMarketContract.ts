@@ -111,14 +111,13 @@ export type NftMarketContractMethodNames =
   | 'tokenByIndex'
   | 'mintToken'
   | 'updateUri'
+  | 'updateStatus'
   | 'getAllNftsOnSale'
   | 'getOwnedNfts'
   | 'transferTo'
   | 'buyNft'
   | 'tokenOfOwnerByIndex'
-  | 'placeNftOnSale'
-  | 'updateStatus'
-  | 'getTokenIdByURI';
+  | 'placeNftOnSale';
 export interface ApprovalEventEmittedResponse {
   owner: string;
   approved: string;
@@ -138,10 +137,10 @@ export interface MetadataUpdateEventEmittedResponse {
 }
 export interface NftItemCreatedEventEmittedResponse {
   tokenId: BigNumberish;
+  uri: string;
   price: BigNumberish;
   creator: string;
   isListed: boolean;
-  status: BigNumberish;
 }
 export interface OwnershipTransferredEventEmittedResponse {
   previousOwner: string;
@@ -552,6 +551,19 @@ export interface NftMarketContract {
   ): Promise<ContractTransaction>;
   /**
    * Payable: false
+   * Constant: false
+   * StateMutability: nonpayable
+   * Type: function
+   * @param tokenId Type: uint256, Indexed: false
+   * @param status Type: uint256, Indexed: false
+   */
+  updateStatus(
+    tokenId: BigNumberish,
+    status: BigNumberish,
+    overrides?: ContractTransactionOverrides
+  ): Promise<ContractTransaction>;
+  /**
+   * Payable: false
    * Constant: true
    * StateMutability: view
    * Type: function
@@ -616,28 +628,4 @@ export interface NftMarketContract {
     newPrice: BigNumberish,
     overrides?: ContractTransactionOverrides
   ): Promise<ContractTransaction>;
-  /**
-   * Payable: false
-   * Constant: false
-   * StateMutability: nonpayable
-   * Type: function
-   * @param tokenId Type: uint256, Indexed: false
-   * @param newStatus Type: uint256, Indexed: false
-   */
-  updateStatus(
-    tokenId: BigNumberish,
-    newStatus: BigNumberish,
-    overrides?: ContractTransactionOverrides
-  ): Promise<ContractTransaction>;
-  /**
-   * Payable: false
-   * Constant: true
-   * StateMutability: view
-   * Type: function
-   * @param tokenURI Type: string, Indexed: false
-   */
-  getTokenIdByURI(
-    tokenURI: string,
-    overrides?: ContractCallOverrides
-  ): Promise<BigNumber>;
 }

@@ -2,6 +2,7 @@ import { MetaMaskInpageProvider } from "@metamask/providers";
 import { Contract, ethers, providers } from "ethers";
 import { setupHooks, Web3Hooks } from "@hooks/web3/setupHooks";
 import { Web3Dependencies } from "@_types/hooks";
+import { get_copyright_by_uri, update_token_copyright } from "components/fectData/fetch_copyright";
 
 declare global {
     interface Window {
@@ -48,7 +49,18 @@ export const loadContract = async (
       Artifact.abi,
       provider
     )
-
+    if(name == "NftMarket"){
+        contract?.on( "NftItemCreated", async (tokenId: number, uri: string, price: number, creator: string, isListed: boolean) => {
+        const copyright = await get_copyright_by_uri(uri);
+        if (copyright && copyright.id) {
+          const response = await update_token_copyright(copyright.id, tokenId.toString());
+          console.log(`📢 NFT Created! ${tokenId}`);
+        }
+        
+      }
+    );
+    }
+    
     return contract;
   } else {
     return Promise.reject(`Contract: [${name}] cannot be loaded!`);
