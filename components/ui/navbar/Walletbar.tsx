@@ -51,7 +51,7 @@ const Walletbar: FunctionComponent<WalletbarProps> = ({
   }
 
 
-  console.log(isRegistered, isAdmin, isUser, isVerifier, isCheck)
+  console.log(isRegistered, isAdmin, isUser, isVerifier, isConnected, isCheck)
 
   // Redirect to /register/create if not registered
   if (isRegistered == false && isAdmin == false && isUser == false && isVerifier == false && isConnected == true && isCheck == true) {
@@ -105,6 +105,24 @@ const Walletbar: FunctionComponent<WalletbarProps> = ({
             
 
             )}
+          </Menu.Item>
+          <Menu.Item>
+            {
+              ({active}) => (
+                <Link href="/my_nfts" className={classNames(active ? 'bg-gray-100' : '', 'block px-4 py-2 text-sm text-gray-700')}>
+              My Nfts
+            </Link>
+              )
+            }
+          </Menu.Item>
+          <Menu.Item>
+            {
+              ({active}) => (
+                <Link href="/transfer_requests" className={classNames(active ? 'bg-gray-100' : '', 'block px-4 py-2 text-sm text-gray-700')}>
+              Transfer Requests
+            </Link>
+              )
+            }
           </Menu.Item>
         </Menu.Items>
       </Menu>

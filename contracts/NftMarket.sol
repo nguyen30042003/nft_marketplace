@@ -28,6 +28,7 @@ contract NftMarket is ERC721URIStorage, Ownable, AccessManage {
 
   event NftItemCreated (
     uint tokenId,
+    string uri,
     uint price,
     address creator,
     bool isListed
@@ -74,7 +75,7 @@ contract NftMarket is ERC721URIStorage, Ownable, AccessManage {
 
     _setTokenURI(newTokenId, tokenURI);
 
-    _createNftItem(newTokenId, price);
+    _createNftItem(newTokenId,tokenURI, price);
     _usedTokenURIs[tokenURI] = true;
     return newTokenId;
   }
@@ -91,23 +92,31 @@ contract NftMarket is ERC721URIStorage, Ownable, AccessManage {
 
 
 
-  function getAllNftsOnSale() public view returns (NftItem[] memory) {
-    uint allItemsCounts = totalSupply();
-    uint currentIndex = 0;
-    NftItem[] memory items = new NftItem[](_listedItems.current());
+function getAllNftsOnSale() public view returns (NftItem[] memory) {
+    uint totalNfts = totalSupply();
+    uint listedNftsCount = 0;
 
-    for (uint i = 0; i < allItemsCounts; i++) {
-      uint tokenId = tokenByIndex(i);
-      NftItem storage item = _idToNftItem[tokenId];
-
-      if (item.isListed == true) {
-        items[currentIndex] = item;
-        currentIndex += 1;
-      }
+    for (uint i = 0; i < totalNfts; i++) {
+        uint tokenId = tokenByIndex(i);
+        if (_idToNftItem[tokenId].isListed == true) {
+            listedNftsCount++;
+        }
     }
 
-    return items;
-  }
+    NftItem[] memory listedNfts = new NftItem[](listedNftsCount);
+    uint currentIndex = 0;
+
+    for (uint i = 0; i < totalNfts; i++) {
+        uint tokenId = tokenByIndex(i);
+        if (_idToNftItem[tokenId].isListed == true) {
+            listedNfts[currentIndex] = _idToNftItem[tokenId];
+            currentIndex++;
+        }
+    }
+
+    return listedNfts;
+}
+
 
 
   function getOwnedNfts() public view returns (NftItem[] memory) {
@@ -126,6 +135,7 @@ contract NftMarket is ERC721URIStorage, Ownable, AccessManage {
   
   function _createNftItem(
     uint tokenId,
+    string memory uri,
     uint price
   ) private {
     require(price > 0, "Price must be at least 1 wei");
@@ -134,15 +144,16 @@ contract NftMarket is ERC721URIStorage, Ownable, AccessManage {
       tokenId,
       price,
       msg.sender,
-      true,
+      false,
       1
     );
 
-    emit NftItemCreated(tokenId, price, msg.sender, true);
+    emit NftItemCreated(tokenId, uri, price, msg.sender, false);
   }
 
 
   function transferTo(uint tokenId, address user) public {
+    _idToNftItem[tokenId].isListed = true;
       address owner = ERC721.ownerOf(tokenId);
       _transfer(owner, user, tokenId);
   }
@@ -237,4 +248,3 @@ contract NftMarket is ERC721URIStorage, Ownable, AccessManage {
     _listedItems.increment();
   }
 }
-

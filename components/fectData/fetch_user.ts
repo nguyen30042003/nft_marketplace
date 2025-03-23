@@ -23,7 +23,7 @@ export interface User {
 }
 
 // Hàm fetch danh sách user đã được duyệt
-export const fetch_user_registed = async (): Promise<User[]> => {
+const fetch_user_registed = async (): Promise<User[]> => {
   const apiUrl = `http://localhost:8081/api/v1/users/approvals`;
 
   try {
@@ -35,9 +35,19 @@ export const fetch_user_registed = async (): Promise<User[]> => {
     throw error;
   }
 };
+// Hook sử dụng SWR để lấy danh sách user đã được duyệt
+export const useRegisteredUsers = () => {
+  const { data, error, isLoading } = useSWR<User[]>("registered_users", fetch_user_registed);
+
+  return {
+    users: data,
+    isLoading,
+    isError: !!error,
+  };
+};
 
 // Hàm fetch danh sách user chưa được duyệt
-export const fetch_user_notApprove = async (): Promise<User[]> => {
+const fetch_user_notApprove = async (): Promise<User[]> => {
   const apiUrl = `http://localhost:8081/api/v1/users/pending-approvals`;
 
   try {
@@ -48,6 +58,17 @@ export const fetch_user_notApprove = async (): Promise<User[]> => {
     console.error("Error in fetch_user_notApprove:", error);
     throw error;
   }
+};
+
+// Hook sử dụng SWR để lấy danh sách user chưa được duyệt
+export const useNotApprovedUsers = () => {
+  const { data, error, isLoading } = useSWR<User[]>("not_approved_users", fetch_user_notApprove);
+
+  return {
+    users: data,
+    isLoading,
+    isError: !!error,
+  };
 };
 
 
@@ -63,7 +84,6 @@ const approveUserFetch = async (address: string): Promise<void> => {
     throw error;
   }
 };
-
 // Hook sử dụng SWR để phê duyệt user
 export const useApproveUser = (address: string) => {
   const { data, error, isLoading } = useSWR(
@@ -78,25 +98,74 @@ export const useApproveUser = (address: string) => {
   };
 };
 
+// Hàm fetch danh sách user đã được duyệt
+const fetch_user_by_role = async (role: string): Promise<User[]> => {
+  const apiUrl = `http://localhost:8081/api/v1/users/by-role?role=${role}`;
 
-// Hook sử dụng SWR để lấy danh sách user đã được duyệt
-export const useRegisteredUsers = () => {
-  const { data, error, isLoading } = useSWR<User[]>("registered_users", fetch_user_registed);
+  try {
+    const response = await apiClient(apiUrl, { method: "GET" });
+    console.log(response)
+    return response;
+  } catch (error) {
+    console.error("Error in fetch_user_registed:", error);
+    throw error;
+  }
+};
+export const useFetchUserByRole = (role: string) => {
+  const { data, error, isLoading } = useSWR<User[]>(
+    role ? `fetch_user_by_role_${role}` : null, // Chỉ fetch nếu có role
+    () => fetch_user_by_role(role) // Truyền callback thay vì gọi trực tiếp
+  );
 
   return {
-    users: data,
+    data: data ?? [], // Đảm bảo luôn là một mảng
     isLoading,
     isError: !!error,
   };
 };
 
-// Hook sử dụng SWR để lấy danh sách user chưa được duyệt
-export const useNotApprovedUsers = () => {
-  const { data, error, isLoading } = useSWR<User[]>("not_approved_users", fetch_user_notApprove);
+
+// Hàm fetch danh sách user đã được duyệt
+const fetch_user_by_address = async (address: string): Promise<User> => {
+  const apiUrl = `http://localhost:8081/api/v1/users?address=${address}`;
+
+  try {
+    const response = await apiClient(apiUrl, { method: "GET" });
+    console.log(response)
+    return response;
+  } catch (error) {
+    console.error("Error in fetch_user_registed:", error);
+    throw error;
+  }
+};
+export const useFetchUserByAddress = (address: string) => {
+  const { data, error, isLoading } = useSWR<User>(
+    address ? `fetch_user_by_address_${address}` : null, 
+    () => fetch_user_by_address(address) // Truyền callback thay vì gọi trực tiếp
+  );
 
   return {
-    users: data,
+    data: data ?? null,
     isLoading,
     isError: !!error,
   };
 };
+
+
+// Hàm fetch để phê duyệt user theo address
+const get_user_by_address = async (address: string): Promise<void> => {
+  const apiUrl = `http://localhost:8081/api/v1/users/${address}`;
+
+  try {
+    await apiClient(apiUrl, { method: "GET" });
+    console.log(`User with address ${address} approved successfully.`);
+  } catch (error) {
+    console.error(`Error approving user with address ${address}:`, error);
+    throw error;
+  }
+};
+
+
+
+
+

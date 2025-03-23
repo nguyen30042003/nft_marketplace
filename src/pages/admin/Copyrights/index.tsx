@@ -7,6 +7,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import useSWR from "swr";
 import { fetch_all_copyright } from "components/fectData/fetch_copyright";
 import { it } from "node:test";
+import router from "next/router";
 
 const ListCopyright: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>("");
@@ -55,7 +56,8 @@ const ListCopyright: React.FC = () => {
   });
 
   const handlePreview = (copyright: any) => {
-    setSelectedCopyright(copyright);
+    //setSelectedCopyright(copyright);
+    router.push(`/admin/Copyrights/${copyright.id}`);
   };
 
   if (isLoading) {

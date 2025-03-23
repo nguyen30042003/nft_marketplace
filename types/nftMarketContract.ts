@@ -110,8 +110,11 @@ export type NftMarketContractMethodNames =
   | 'totalSupply'
   | 'tokenByIndex'
   | 'mintToken'
+  | 'updateUri'
+  | 'updateStatus'
   | 'getAllNftsOnSale'
   | 'getOwnedNfts'
+  | 'transferTo'
   | 'buyNft'
   | 'tokenOfOwnerByIndex'
   | 'placeNftOnSale';
@@ -134,6 +137,7 @@ export interface MetadataUpdateEventEmittedResponse {
 }
 export interface NftItemCreatedEventEmittedResponse {
   tokenId: BigNumberish;
+  uri: string;
   price: BigNumberish;
   creator: string;
   isListed: boolean;
@@ -178,6 +182,8 @@ export interface NftitemResponse {
   2: string;
   isListed: boolean;
   3: boolean;
+  status: BigNumber;
+  4: BigNumber;
 }
 export interface NftMarketContract {
   /**
@@ -532,6 +538,32 @@ export interface NftMarketContract {
   ): Promise<ContractTransaction>;
   /**
    * Payable: false
+   * Constant: false
+   * StateMutability: nonpayable
+   * Type: function
+   * @param tokenId Type: uint256, Indexed: false
+   * @param uri Type: string, Indexed: false
+   */
+  updateUri(
+    tokenId: BigNumberish,
+    uri: string,
+    overrides?: ContractTransactionOverrides
+  ): Promise<ContractTransaction>;
+  /**
+   * Payable: false
+   * Constant: false
+   * StateMutability: nonpayable
+   * Type: function
+   * @param tokenId Type: uint256, Indexed: false
+   * @param status Type: uint256, Indexed: false
+   */
+  updateStatus(
+    tokenId: BigNumberish,
+    status: BigNumberish,
+    overrides?: ContractTransactionOverrides
+  ): Promise<ContractTransaction>;
+  /**
+   * Payable: false
    * Constant: true
    * StateMutability: view
    * Type: function
@@ -546,6 +578,19 @@ export interface NftMarketContract {
    * Type: function
    */
   getOwnedNfts(overrides?: ContractCallOverrides): Promise<NftitemResponse[]>;
+  /**
+   * Payable: false
+   * Constant: false
+   * StateMutability: nonpayable
+   * Type: function
+   * @param tokenId Type: uint256, Indexed: false
+   * @param user Type: address, Indexed: false
+   */
+  transferTo(
+    tokenId: BigNumberish,
+    user: string,
+    overrides?: ContractTransactionOverrides
+  ): Promise<ContractTransaction>;
   /**
    * Payable: true
    * Constant: false
