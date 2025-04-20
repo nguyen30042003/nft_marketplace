@@ -4,10 +4,10 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "../contracts/access/AccessManage.sol";
-
+import "./History.sol";
 contract NftMarket is ERC721URIStorage, Ownable, AccessManage {
   using Counters for Counters.Counter;
-
+  using StatusLib for StatusLib.StatusHistory[];
   Counters.Counter private _listedItems;
   Counters.Counter private _tokenIds;
   uint256[] private _allNfts;
@@ -17,7 +17,7 @@ contract NftMarket is ERC721URIStorage, Ownable, AccessManage {
   mapping(uint => uint) private _idToNftIndex;
   mapping(address => mapping(uint => uint)) private _ownedTokens;
   mapping(uint => uint) private _idToOwnedIndex;
-
+  mapping(uint => StatusLib.StatusHistory[]) private _statusHistory;
   struct NftItem {
     uint tokenId;
     uint price;
@@ -63,9 +63,7 @@ contract NftMarket is ERC721URIStorage, Ownable, AccessManage {
   }
   
   function mintToken(string memory tokenURI, uint price) public payable returns (uint) {
-    //require(isVerifier(msg.sender), "Only verifiers can access this");    
     require(!tokenURIExists(tokenURI), "Token URI already exists");
-   // require(msg.value == listingPrice, "Price must be equal to listing price");
     _tokenIds.increment();
     _listedItems.increment();
 
@@ -88,8 +86,11 @@ contract NftMarket is ERC721URIStorage, Ownable, AccessManage {
   function updateStatus(uint tokenId, uint status) public {
     NftItem storage item = _idToNftItem[tokenId];
     item.status = status;
+    _statusHistory[tokenId].addStatus(status);
   }
-
+  function getStatusHistory(uint tokenId) public view returns (StatusLib.StatusHistory[] memory) {
+    return _statusHistory[tokenId];
+  }
 
 
 function getAllNftsOnSale() public view returns (NftItem[] memory) {

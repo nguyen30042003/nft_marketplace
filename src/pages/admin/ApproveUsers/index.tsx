@@ -3,7 +3,7 @@ import BaseLayout from "@ui/layout/BaseLayout";
 import Table from "@ui/table";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { useNotApprovedUsers, useApproveUser } from "components/fectData/fetch_user";
+import { useNotApprovedUsers, useApproveUser, useFetchUserById } from "components/fectData/fetch_user";
 import { create_copyright } from 'components/fectData/fetch_copyright';
 import { useWeb3 } from "@providers/web3";
 
@@ -37,6 +37,7 @@ const ListUser: React.FC = () => {
       address: user.address,
       role: user.role,
       createdAt: new Date(user.createAt),
+      verifierId: user.verifierId,
     })) || [];
 
   const filteredData = transformedData.filter((item) => {
@@ -61,23 +62,33 @@ const ListUser: React.FC = () => {
 
   const handleApprove = async (address: string, name: string, email: string, role: string) => {
     try {
-
-      console.log(address, name, email, role)
+      console.log(address, name, email, role);
+  
+  
+      // Nếu role là MEMBER thì thêm vào staff
+      if (role === "MEMBER") {
+        const txx = await copyrightContract?.addStaff(address, name, email, "");
+        console.log(txx);
+      }
+      else{
+      // Thêm user vào hệ thống
       const tx = await copyrightContract?.addUser(address, name, email, "", role);
-      console.log(address, name, email, role)
-      
-      // const txx = await copyrightContract?.isUser(address);
-      // console.log(txx)
+      console.log(tx);
+      }  
       setApprovedAddress(address);
       await window.location.reload();
     } catch (error) {
       console.error(`Error approving user with address: ${address}`, error);
     }
   };
+  
 
   const handleClosePreview = () => {
     setSelectedUser(null); // Đóng form preview
   };
+
+  const verifierId = selectedUser?.verifierId?.toString();
+  const { data: verifierData, isLoading: loadingVerifier } = useFetchUserById(verifierId || "");
 
   if (isLoading) {
     return (
@@ -169,16 +180,29 @@ const ListUser: React.FC = () => {
               <p>
                 <strong>Role:</strong> {selectedUser.role}
               </p>
+              {selectedUser.role === "MEMBER" && (
+                <>
+                  <p>
+                    <strong>Verifier Address:</strong>{" "}
+                    {loadingVerifier ? "Loading..." : verifierData?.address || "N/A"}
+                  </p>
+                  <p>
+                    <strong>Verifier:</strong>{" "}
+                    {loadingVerifier ? "Loading..." : verifierData?.username || "N/A"}
+                  </p>
+                </>
+              )}
+
+
               <p>
                 <strong>Created At:</strong> {selectedUser.createdAt.toLocaleDateString()}
               </p>
               <div className="mt-4">
                 <button
-                  className={`${
-                    approving && approvedAddress === selectedUser.address
-                      ? "bg-gray-500 cursor-not-allowed"
-                      : "bg-green-500 hover:bg-green-600"
-                  } text-white px-4 py-2 rounded`}
+                  className={`${approving && approvedAddress === selectedUser.address
+                    ? "bg-gray-500 cursor-not-allowed"
+                    : "bg-green-500 hover:bg-green-600"
+                    } text-white px-4 py-2 rounded`}
                   disabled={approving && approvedAddress === selectedUser.address}
                   onClick={() => handleApprove(selectedUser.address, selectedUser.username, selectedUser.email, selectedUser.role)}
                 >

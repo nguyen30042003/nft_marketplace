@@ -1,4 +1,6 @@
+import { Member } from "@_types/nft";
 import apiClient from "components/service/apiClient";
+import { json } from "stream/consumers";
 import useSWR from "swr";
 
 // Định nghĩa interface User dựa trên dữ liệu từ API
@@ -14,6 +16,7 @@ export interface User {
   active: boolean;
   enabled: boolean;
   password: string;
+  verifierId: string;
   authorities: {
     authority: string;
   }[];
@@ -166,6 +169,83 @@ const get_user_by_address = async (address: string): Promise<void> => {
 };
 
 
+const get_member_by_verifer_address = async (address: string): Promise<User[]> => {
+  const apiUrl = `http://localhost:8081/api/v1/users/member?address=${address}`;
+
+  try {
+    const response = await apiClient(apiUrl, { method: "GET" });
+    return response;
+  } catch (error) {
+    console.error(`Error fetching users with address ${address}:`, error);
+    throw error;
+  }
+};
 
 
+export const useMemberByVerifer = (address: string) => {
+  const shouldFetch = !!address; // đảm bảo chỉ fetch khi address có giá trị
 
+  const { data, error, isLoading } = useSWR(
+    shouldFetch ? `get_member_by_verifer_address_${address}` : null,
+    () => get_member_by_verifer_address(address)
+  );
+
+  return {
+    users: data,
+    isLoading,
+    isError: !!error,
+  };
+};
+
+
+// Hàm fetch danh sách user đã được duyệt
+export const create_member_by_verifier = async (member: Member): Promise<void> => {
+  const apiUrl = `http://localhost:8081/auth/signup`;
+
+  try {
+    const response = await apiClient(apiUrl, { method: "POST", body: JSON.stringify(member) });
+    console.log(response)
+    return response;
+  } catch (error) {
+    console.error("Error in fetch_user_registed:", error);
+    throw error;
+  }
+};
+
+
+const fetch_user_by_id = async (id: string): Promise<User> => {
+  const apiUrl = `http://localhost:8081/api/v1/users/${id}`;
+
+  try {
+    const response = await apiClient(apiUrl, { method: "GET" });
+    console.log(response)
+    return response;
+  } catch (error) {
+    console.error("Error in fetch_user_registed:", error);
+    throw error;
+  }
+};
+export const useFetchUserById = (id: string) => {
+  const { data, error, isLoading } = useSWR<User>(
+    id ? `fetch_user_by_id${id}` : null, 
+    () => fetch_user_by_id(id) // Truyền callback thay vì gọi trực tiếp
+  );
+
+  return {
+    data: data ?? null,
+    isLoading,
+    isError: !!error,
+  };
+};
+
+export const deleteUser = async (id: string): Promise<void> => {
+  const apiUrl = `http://localhost:8081/api/v1/users/delete/${id}`;
+
+  try {
+    const response = await apiClient(apiUrl, { method: "POST" });
+    console.log(response)
+  } catch (error) {
+    console.error("Error in deleteUser:", error);
+    throw error;
+  }
+};

@@ -1,15 +1,17 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @next/next/no-img-element */
 import { useRouter } from "next/router";
 import useSWR, { mutate } from "swr";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import BaseLayout from "@ui/layout/BaseLayout";
 import { fetch_copyright_by_id, send_email_api, update_status_copyright_by_id } from "components/fectData/fetch_copyright";
 import { useWeb3 } from "@providers/web3";
 import { data } from "framer-motion/client";
-import { Status } from "@_types/nft";
+import { BrandResponse, CopyRight, MostSimilar, Status } from "@_types/nft";
 import { emailRequest } from "@_types/emailRequest";
 import { toast } from "react-toastify";
 import Link from "next/link";
+import { fetchCheckName, fetchCheckSamples } from "components/fectData/fetch_check_copyrights";
 
 export default function UserDetailPage() {
     const router = useRouter();
@@ -20,6 +22,92 @@ export default function UserDetailPage() {
         idString ? ["fetch_copyright_by_id", idString] : null,
         () => fetch_copyright_by_id(idString as string)
     );
+
+    const [checkResult, setCheckResult] = useState<BrandResponse | null>(null);
+
+    // Bản quyền tương đồng (nếu có)
+    const [similarCopyright, setSimilarCopyright] = useState<CopyRight | null>(null);
+
+    // Gọi API kiểm tra tên bản quyền tương đồng
+    useEffect(() => {
+        const runCheck = async () => {
+            const name = copyrights?.id;
+            if (!name) return;
+
+            try {
+                const result = await fetchCheckName(name);
+                console.log("Tên tương đồng:", result);
+                setCheckResult(result);
+            } catch (err) {
+                console.error("Lỗi khi kiểm tra tên tương đồng:", err);
+            }
+        };
+
+        runCheck();
+    }, [copyrights?.id]);
+
+    // Gọi chi tiết bản quyền từ kết quả tương đồng
+    useEffect(() => {
+        const fetchSimilarDetail = async () => {
+            const similarId = checkResult?.id;
+            if (!similarId) return;
+
+            try {
+                const detail = await fetch_copyright_by_id(similarId.toString());
+                setSimilarCopyright(detail);
+            } catch (err) {
+                console.error("Lỗi khi lấy chi tiết bản quyền tương đồng:", err);
+            }
+        };
+
+        fetchSimilarDetail();
+    }, [checkResult?.id]);
+
+
+
+
+    // Kết quả từ kiểm tra logo
+    const [similarLogoResult, setSimilarLogoResult] = useState<MostSimilar | null>(null);
+    // Bản quyền tương đồng (nếu có)
+    const [similarLogoCopyright, setSimilarLogoCopyright] = useState<CopyRight | null>(null);
+    // Gọi API kiểm tra logo tương đồng
+    useEffect(() => {
+        const runCheckSamples = async () => {
+            if (!idString) return;
+
+            try {
+                const result = await fetchCheckSamples(idString);
+                console.log("Logo tương đồng:", result);
+                setSimilarLogoResult(result);
+            } catch (err) {
+                console.error("Lỗi khi kiểm tra logo tương đồng:", err);
+            }
+        };
+
+        runCheckSamples();
+    }, [idString]);
+
+    // Gọi chi tiết bản quyền từ kết quả tương đồng
+    useEffect(() => {
+        const fetchSimilarLogo = async () => {
+            const similarId = similarLogoResult?.id;
+            if (!similarId) return;
+
+            try {
+                const detail = await fetch_copyright_by_id(similarId.toString());
+                setSimilarLogoCopyright(detail);
+            } catch (err) {
+                console.error("Lỗi khi lấy chi tiết bản quyền tương đồng:", err);
+            }
+        };
+
+        fetchSimilarLogo();
+    }, [similarLogoResult?.id]);
+
+
+
+
+
 
     const [newStatus, setNewStatus] = useState("");
     const [reason, setReason] = useState("");
@@ -75,6 +163,8 @@ export default function UserDetailPage() {
                 const tx = await copyrightContract?.updateStatus(copyrights?.tokenId, 4)
                 await transferNft()
                 if (tx) {
+                    console.log(idString)
+                    console.log(newStatus)
                     await update_status_copyright_by_id(Number(idString), newStatus);
                 }
             }
@@ -135,10 +225,17 @@ export default function UserDetailPage() {
         );
     }
 
+    const [showCheckCopyright, setShowCheckCopyright] = useState(false);
+
+    const [showCheckLogoCopyright, setShowCheckLogoCopyright] = useState(false);
+
+
 
 
     if (isLoading) return <p style={{ textAlign: "center" }}>Loading user data...</p>;
     if (error) return <p style={{ textAlign: "center", color: "red" }}>Error fetching user data</p>;
+
+
 
     return (
         <BaseLayout>
@@ -164,30 +261,132 @@ export default function UserDetailPage() {
                         wordWrap: "break-word",
                     }}
                 >
-                    <h1 style={{ textAlign: "center", marginBottom: "20px", fontSize: "24px", fontWeight: "bold" }}>User Details</h1>
+
+                    <div style={{ marginBottom: "20px", fontSize: "24px", fontWeight: "bold" }}>
+                        <div style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
+                            <h1>Copyright Details</h1>
+                
+                        </div>
+                    </div>
+
+                    {showCheckCopyright && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+                            <div className="bg-white shadow-md rounded-lg p-6 border border-gray-200 relative w-full max-w-xl mx-4">
+                                <button
+                                    className="absolute top-2 right-2 text-gray-500 hover:text-red-500 text-xl font-bold"
+                                    onClick={() => setShowCheckCopyright(false)}
+                                >
+                                    ×
+                                </button>
+                                <h2 className="text-xl font-bold mb-4">
+                                    Similar name copyright Information</h2>
+                                {checkResult && similarCopyright ? (
+                                    <>
+                                        <div className="mb-2"><strong>Name Brand:</strong> {checkResult.brand}</div>
+                                        <div className="mb-2">
+                                            <strong>Score:</strong> {typeof checkResult.score === 'number' ? (checkResult.score * 100).toFixed(2) + "%" : "N/A"}
+                                        </div>
+
+
+                                        <div className="mb-2"><strong>Owner address:</strong> {similarCopyright.user.address}</div>
+                                        <div className="mb-2"><strong>Sample:</strong><div className="block w-40 aspect-w-10 aspect-h-7 rounded-lg overflow-hidden">
+                                            <img src={similarCopyright.metaData.samples} alt="" className="object-cover" />
+                                        </div> </div>
+                                        <div className="mb-2"><strong>Application form:</strong><Link href={similarCopyright.metaData.applicationForm} legacyBehavior>
+                                            <a className="underline text-indigo-600" target="_blank" rel="noopener noreferrer">
+                                                {similarCopyright.metaData.applicationForm}
+                                            </a>
+                                        </Link> </div>
+                                        <div className="mb-2"><strong>Status:</strong> {similarCopyright.status}</div>
+                                    </>
+                                ) : (
+                                    <p className="text-gray-500 italic">Not similar copyright.</p>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {showCheckLogoCopyright && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+                            <div className="bg-white shadow-md rounded-lg p-6 border border-gray-200 relative w-full max-w-xl mx-4">
+                                <button
+                                    className="absolute top-2 right-2 text-gray-500 hover:text-red-500 text-xl font-bold"
+                                    onClick={() => setShowCheckLogoCopyright(false)}
+                                >
+                                    ×
+                                </button>
+                                <h2 className="text-xl font-bold mb-4">
+                                    Similar logo copyright Information</h2>
+                                {similarLogoResult && similarLogoCopyright ? (
+                                    <>
+                                        <div className="mb-2"><strong>Name Brand:</strong> {similarLogoCopyright.metaData.name}</div>
+                                        <div className="mb-2">
+                                            <strong>Score:</strong> {typeof similarLogoResult.rate === 'number' ? (similarLogoResult.rate * 100).toFixed(2) + "%" : "N/A"}
+                                        </div>
+
+
+                                        <div className="mb-2"><strong>Owner address:</strong> {similarLogoCopyright.user.address}</div>
+                                        <div className="mb-2"><strong>Sample:</strong><div className="block w-40 aspect-w-10 aspect-h-7 rounded-lg overflow-hidden">
+                                            <img src={similarLogoCopyright.metaData.samples} alt="" className="object-cover" />
+                                        </div> </div>
+                                        <div className="mb-2"><strong>Application form:</strong><Link href={similarLogoCopyright.metaData.applicationForm} legacyBehavior>
+                                            <a className="underline text-indigo-600" target="_blank" rel="noopener noreferrer">
+                                                {similarLogoCopyright.metaData.applicationForm}
+                                            </a>
+                                        </Link> </div>
+                                        <div className="mb-2"><strong>Status:</strong> {similarLogoCopyright.status}</div>
+                                    </>
+                                ) : (
+                                    <p className="text-gray-500 italic">Not similar copyright.</p>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+
 
                     {copyrights ? (
                         <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                             <p><strong>Address:</strong> {copyrights.user.address}</p>
                             <p><strong>Username:</strong> {copyrights.user.username}</p>
                             <p><strong>Email:</strong> {copyrights.user.email}</p>
-                            <p><strong>Title:</strong> {copyrights.metaData.name}</p>
+                            <div>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                    <p><strong>Title:</strong> {copyrights.metaData.name}</p>
+                                    <button
+                                        onClick={() => setShowCheckCopyright(true)}
+                                        className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+                                    >
+                                        Check name copyright
+                                    </button>
+                                </div>
+                            </div>
+                            
                             <p>
-                                <strong>Form:</strong>
+                                <strong>Form: </strong>
                                 <Link href={copyrights.metaData.applicationForm} legacyBehavior>
                                     <a className="underline text-indigo-600" target="_blank" rel="noopener noreferrer">
                                         {copyrights.metaData.applicationForm}
                                     </a>
                                 </Link>
                             </p>
-                            <p>
-                                <strong>Samples:</strong>
-                                <div className="block w-40 aspect-w-10 aspect-h-7 rounded-lg overflow-hidden">
-                                    <img src={copyrights.metaData.samples} alt="" className="object-cover" />
+                            <div>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                    <p>
+                                        <strong>Samples:</strong>
+                                        <div className="block w-40 aspect-w-10 aspect-h-7 rounded-lg overflow-hidden">
+                                            <img src={copyrights.metaData.samples} alt="" className="object-cover" />
+                                        </div>
+                                    </p>
+                                    <button
+                                        onClick={() => setShowCheckLogoCopyright(true)}
+                                        className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+                                    >
+                                        Check logo copyright
+                                    </button>
+
                                 </div>
-                            </p>
-
-
+                            </div>
 
                             <p>
                                 <strong>Created At:</strong>

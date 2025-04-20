@@ -79,14 +79,18 @@ export interface NftMarketContractEventsContext {
 }
 export type NftMarketContractMethodNames =
   | 'new'
+  | 'addStaff'
   | 'addUser'
   | 'approve'
   | 'assignRole'
   | 'balanceOf'
   | 'getApproved'
+  | 'getStaffsOfVerifier'
   | 'getUserInfo'
+  | 'getVerifierOfStaff'
   | 'isAdmin'
   | 'isApprovedForAll'
+  | 'isStaff'
   | 'isUser'
   | 'isVerifier'
   | 'listingPrice'
@@ -94,6 +98,7 @@ export type NftMarketContractMethodNames =
   | 'owner'
   | 'ownerOf'
   | 'removeRole'
+  | 'removeStaff'
   | 'renounceOwnership'
   | 'safeTransferFrom'
   | 'safeTransferFrom'
@@ -112,6 +117,7 @@ export type NftMarketContractMethodNames =
   | 'mintToken'
   | 'updateUri'
   | 'updateStatus'
+  | 'getStatusHistory'
   | 'getAllNftsOnSale'
   | 'getOwnedNfts'
   | 'transferTo'
@@ -185,6 +191,12 @@ export interface NftitemResponse {
   status: BigNumber;
   4: BigNumber;
 }
+export interface StatushistoryResponse {
+  status: BigNumber;
+  0: BigNumber;
+  timestamp: BigNumber;
+  1: BigNumber;
+}
 export interface NftMarketContract {
   /**
    * Payable: false
@@ -193,6 +205,23 @@ export interface NftMarketContract {
    * Type: constructor
    */
   'new'(overrides?: ContractTransactionOverrides): Promise<ContractTransaction>;
+  /**
+   * Payable: false
+   * Constant: false
+   * StateMutability: nonpayable
+   * Type: function
+   * @param staffAccount Type: address, Indexed: false
+   * @param name Type: string, Indexed: false
+   * @param email Type: string, Indexed: false
+   * @param tokenURI Type: string, Indexed: false
+   */
+  addStaff(
+    staffAccount: string,
+    name: string,
+    email: string,
+    tokenURI: string,
+    overrides?: ContractTransactionOverrides
+  ): Promise<ContractTransaction>;
   /**
    * Payable: false
    * Constant: false
@@ -265,12 +294,34 @@ export interface NftMarketContract {
    * Constant: true
    * StateMutability: view
    * Type: function
+   * @param verifier Type: address, Indexed: false
+   */
+  getStaffsOfVerifier(
+    verifier: string,
+    overrides?: ContractCallOverrides
+  ): Promise<string[]>;
+  /**
+   * Payable: false
+   * Constant: true
+   * StateMutability: view
+   * Type: function
    * @param account Type: address, Indexed: false
    */
   getUserInfo(
     account: string,
     overrides?: ContractCallOverrides
   ): Promise<GetUserInfoResponse>;
+  /**
+   * Payable: false
+   * Constant: true
+   * StateMutability: view
+   * Type: function
+   * @param staff Type: address, Indexed: false
+   */
+  getVerifierOfStaff(
+    staff: string,
+    overrides?: ContractCallOverrides
+  ): Promise<string>;
   /**
    * Payable: false
    * Constant: true
@@ -292,6 +343,14 @@ export interface NftMarketContract {
     operator: string,
     overrides?: ContractCallOverrides
   ): Promise<boolean>;
+  /**
+   * Payable: false
+   * Constant: true
+   * StateMutability: view
+   * Type: function
+   * @param account Type: address, Indexed: false
+   */
+  isStaff(account: string, overrides?: ContractCallOverrides): Promise<boolean>;
   /**
    * Payable: false
    * Constant: true
@@ -354,6 +413,17 @@ export interface NftMarketContract {
   removeRole(
     account: string,
     role: string,
+    overrides?: ContractTransactionOverrides
+  ): Promise<ContractTransaction>;
+  /**
+   * Payable: false
+   * Constant: false
+   * StateMutability: nonpayable
+   * Type: function
+   * @param staffAccount Type: address, Indexed: false
+   */
+  removeStaff(
+    staffAccount: string,
     overrides?: ContractTransactionOverrides
   ): Promise<ContractTransaction>;
   /**
@@ -562,6 +632,17 @@ export interface NftMarketContract {
     status: BigNumberish,
     overrides?: ContractTransactionOverrides
   ): Promise<ContractTransaction>;
+  /**
+   * Payable: false
+   * Constant: true
+   * StateMutability: view
+   * Type: function
+   * @param tokenId Type: uint256, Indexed: false
+   */
+  getStatusHistory(
+    tokenId: BigNumberish,
+    overrides?: ContractCallOverrides
+  ): Promise<StatushistoryResponse[]>;
   /**
    * Payable: false
    * Constant: true

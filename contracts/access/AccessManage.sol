@@ -10,6 +10,11 @@ contract AccessManage {
     Roles.Role private users;
     Roles.Role private verifiers;
     Roles.Role private admins;
+    Roles.Role private staffs;
+
+    // Mapping từ address nhân viên tới tổ chức verifier quản lý
+    mapping(address => address) private staffToVerifier;
+    mapping(address => address[]) private verifierToStaffs;
 
 
     // User data structure
@@ -126,4 +131,79 @@ contract AccessManage {
     function isUser(address account) public view returns (bool) {
         return users.has(account);
     }
+
+
+// Thêm hàm addStaff mới để nhận thêm thông tin người dùng
+    function addStaff(
+        address staffAccount,
+        string memory name,
+        string memory email,
+        string memory tokenURI
+    ) public {
+        require(
+            admins.has(msg.sender) || verifiers.has(msg.sender),
+            "Only admin or verifier can add staff"
+        );
+        require(!staffs.has(staffAccount), "Already a staff");
+
+        staffs.add(staffAccount);
+
+        // Lưu thông tin người dùng vào mapping
+        userInfo[staffAccount] = User(name, email, tokenURI);
+
+        // Nếu người gọi là verifier, gán verifier đó làm chủ quản lý staff
+        if (verifiers.has(msg.sender)) {
+            staffToVerifier[staffAccount] = msg.sender;
+            verifierToStaffs[msg.sender].push(staffAccount);
+        }
+
+        emit RoleAssigned(staffAccount, "STAFF");
+    }
+
+
+    function removeStaff(address staffAccount) public {
+        require(staffs.has(staffAccount), "Not a staff");
+
+        address ownerVerifier = staffToVerifier[staffAccount];
+
+        // Chỉ admin hoặc verifier chủ của staff mới được phép xoá
+        require(
+            admins.has(msg.sender) || msg.sender == ownerVerifier,
+            "Not authorized to remove this staff"
+        );
+
+        staffs.remove(staffAccount);
+        staffToVerifier[staffAccount] = address(0);
+
+        // Nếu là verifier thì xoá staff khỏi danh sách
+        if (msg.sender == ownerVerifier) {
+            address[] storage staffList = verifierToStaffs[msg.sender];
+            for (uint i = 0; i < staffList.length; i++) {
+                if (staffList[i] == staffAccount) {
+                    staffList[i] = staffList[staffList.length - 1];
+                    staffList.pop();
+                    break;
+                }
+            }
+        }
+
+        emit RoleRemoved(staffAccount, "STAFF");
+    }
+
+    function isStaff(address account) public view returns (bool) {
+        return staffs.has(account);
+    }
+
+    function getVerifierOfStaff(address staff) public view returns (address) {
+        require(staffs.has(staff), "Not a staff");
+        return staffToVerifier[staff];
+    }
+
+
+    function getStaffsOfVerifier(address verifier) public view returns (address[] memory) {
+        require(verifiers.has(verifier), "Not a verifier");
+        return verifierToStaffs[verifier];
+    }
+
+
 }

@@ -59,7 +59,7 @@ export const update_status_transfer_copyright_by_id = async (id: number, status:
 };
 
 export const fetch_all_transfer_copyright_by_toUser = async (address: string): Promise<TransferCopyRightResponse[]> => {
-  const apiUrl = `http://localhost:8081/api/v1/transactions?address=${address}&isVerify=false`;
+  const apiUrl = `http://localhost:8081/api/v1/transactions/searchByAddress?address=${address}&isVerify=false`;
   console.log(apiUrl);
   try {
     const response = await apiClient(apiUrl, { method: "GET" });
@@ -84,3 +84,30 @@ export const detele_transfer_copyright = async (id: number): Promise<TransferCop
   }
 };
 
+export const fetch_transfer_copyright_by_search = async (
+  filters: Record<string, any>
+): Promise<TransferCopyRightResponse[]> => {
+  const searchQuery = buildSearchQuery(filters);
+  const apiUrl = `http://localhost:8081/api/v1/transactions?search=${searchQuery}`;
+  console.log(apiUrl);
+
+  try {
+    const response = await apiClient(apiUrl, { method: "GET" });
+    console.log(response);
+    return response;
+  } catch (error) {
+    console.error("Error in fetch_all_transfer_copyright_by_verifier:", error);
+    throw error;
+  }
+};
+
+const buildSearchQuery = (filters: Record<string, any>): string => {
+  return Object.entries(filters)
+    .map(([key, value]) => `${key}:${value}`)
+    .join(",");
+};
+
+
+// fetch_all_transfer_copyright_by_verifier({ orderId: 1 })
+//   .then((data) => console.log(data))
+//   .catch((error) => console.error(error));

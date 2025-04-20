@@ -89,7 +89,8 @@ export enum TransactionStatus {
   PAYMENT_REQUIRED = "PAYMENT_REQUIRED",
   PAYMENT_COMPLETED = "PAYMENT_COMPLETED",
   COMPLETED = "COMPLETED",
-  CANCELLED = "CANCELLED"
+  CANCELLED = "CANCELLED",
+  CANCELLED_REQUIRED = "CANCELLED_REQUIRED",
 }
 
 
@@ -117,9 +118,33 @@ export interface TransferCopyRightResponse {
   orderId: number,
   fromUserAddress: string;
   toUserAddress: string;
+  verifierAddress: string;
   title: string;
   price: number;
   status: TransactionStatus;
   createAt: string;
   updateAt: string;
 }
+
+
+export interface BrandResponse {
+  brand: string,
+  score: string,
+  id: number
+}
+
+export interface MostSimilar {
+  id: number,
+  logo: string,
+  rate: string
+}
+
+export interface Member {
+  username: string;
+  address: string;
+  email: string;
+  role: string;
+  isApprove: boolean;
+  isStaff: boolean;
+  idVerifier: number;
+};
