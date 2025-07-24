@@ -15,6 +15,7 @@ type UseAccountResponse = {
   isRegistered: boolean;
   isConnected: boolean;
   isCheck: boolean;
+  isMember: boolean;
 };
 type AccountHookFactory = CryptoHookFactory<string, UseAccountResponse>
 
@@ -94,6 +95,7 @@ export const hookFactory: AccountHookFactory = ({ provider, copyrightContract, e
   let [isVerifier, setIsVerifier] = useState(false);
   let [isRegistered, setIsRegistered] = useState(false);
   let [isCheck, setIsCheck] = useState(false);
+  let [isMember, setIsMember] = useState(false);
   const checkAccount = async () => {
     let responseIsAdmin = false;
     if (!data) {
@@ -132,8 +134,11 @@ export const hookFactory: AccountHookFactory = ({ provider, copyrightContract, e
         else if (role == "VERIFIER") {
           setIsVerifier(true);
         }
-        else  {
+        else if (role == "USER") {
           setIsUser(true);
+        }
+        else{
+          setIsMember(true)
         }
       }
       else {
@@ -170,6 +175,7 @@ export const hookFactory: AccountHookFactory = ({ provider, copyrightContract, e
     isRegistered: isRegistered as boolean,
     isConnected: isConnected as boolean,
     isCheck: isCheck as boolean,
+    isMember: isMember as boolean,
     mutate,
     connect
   };

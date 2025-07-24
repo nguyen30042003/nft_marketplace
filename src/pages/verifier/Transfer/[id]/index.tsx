@@ -68,7 +68,8 @@ export default function UserDetailPage() {
         }
 
         const tokenId = BigInt(copyrights.tokenId); 
-        const tx = await copyrightContract?.transferTo(tokenId, toUserInfoSWR?.address);
+        console.log("Transferring NFT with tokenId:", copyrights.tokenId, "to address:", toUserInfoSWR.address);
+        const tx = await copyrightContract?.transferTo(copyrights.tokenId, copyrights.user.address, toUserInfoSWR?.address);
         await toast.promise(
             tx!.wait(), {
             pending: "Transfer NFT",

@@ -27,10 +27,12 @@ const Table = ({
         {data.map((item, index) => {
           let rowClass = "";
           if (item.status === "PUBLISHED") {
-            rowClass = "bg-yellow-100"; // Màu vàng cho Published
-          } else if (item.status === "REJECTED") {
-            rowClass = "bg-red-100"; // Màu đỏ cho Rejected
-          }
+  rowClass = "bg-yellow-400"; // Published - vàng nhạt
+} else if (item.status === "REJECTED") {
+  rowClass = "bg-orange-400"; // Rejected - cam nhạt (phân biệt với Published)
+} else if (item.status === "EXPIRED") {
+  rowClass = "bg-red-500"; // Expired - đỏ nhạt
+}
 
           return (
             <tr key={index} className={`border-b border-gray-300 hover:bg-gray-50 ${rowClass}`}>

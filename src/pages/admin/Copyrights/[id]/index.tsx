@@ -25,22 +25,22 @@ export default function UserDetailPage() {
     const [emailContent, setEmailContent] = useState("");
     const { ethereum, copyrightContract } = useWeb3();
 
-    const transferNft = async () => {
-        if (!copyrights?.tokenId || !copyrights?.user?.address) {
-            console.error("Missing tokenId or user address");
-            return;
-        }
+    // const transferNft = async () => {
+    //     if (!copyrights?.tokenId || !copyrights?.user?.address) {
+    //         console.error("Missing tokenId or user address");
+    //         return;
+    //     }
 
-        const tokenId = BigInt(copyrights.tokenId); // Ép kiểu về BigNumberish
-        const tx = await copyrightContract?.transferTo(tokenId, copyrights.user.address);
-        await toast.promise(
-            tx!.wait(), {
-            pending: "Transfer NFT",
-            success: "Transfer successfully",
-            error: "Transfer error"
-        }
-        );
-    }
+    //     const tokenId = BigInt(copyrights.tokenId); // Ép kiểu về BigNumberish
+    //     const tx = await copyrightContract?.transferTo(tokenId, copyrights.user.address);
+    //     await toast.promise(
+    //         tx!.wait(), {
+    //         pending: "Transfer NFT",
+    //         success: "Transfer successfully",
+    //         error: "Transfer error"
+    //     }
+    //     );
+    // }
 
 
     const handleUpdateStatus = async () => {
@@ -70,7 +70,7 @@ export default function UserDetailPage() {
             }
             else if (newStatus == "PUBLISHED") {
                 const tx = await copyrightContract?.updateStatus(copyrights?.tokenId, 4)
-                await transferNft()
+                //await transferNft()
                 if (tx) {
                     await update_status_copyright_by_id(Number(idString), newStatus);
                 }

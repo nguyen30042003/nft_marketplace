@@ -89,7 +89,7 @@ export default function MyNftPage() {
         };
 
         console.log(transferCopyrightData)
-        await sendTransaction(copyright?.verifierAddress ?? "", 0.000005, "0", false)
+        await sendTransaction(copyright?.verifierAddress ?? "", 0.000005, "0", false, Status.PENDING);
         await create_transfer_copyright(transferCopyrightData);
         await update_is_transfer_copyright(Number(copyright?.id), true);
     };
@@ -98,12 +98,18 @@ export default function MyNftPage() {
 
     const { ethereum, copyrightContract } = useWeb3();
     const [nftURI, setNftURI] = useState("");
-    const [nftMeta, setNftMeta] = useState<NftMeta>({
-        name: "",
-        description: "",
-        samples: "",
-        applicationForm: "",
-    });
+const [nftMeta, setNftMeta] = useState<NftMeta>({
+  uri: "",
+  name: "",
+  description: "",
+  samples: "",
+  applicationForm: "",
+  createAt: "",
+  updateAt: "",
+  activeAt: "",
+  expiredAt: "",
+});
+
 
     useEffect(() => {
         if (copyright) {

@@ -1,3 +1,4 @@
+import { CopyrightType } from "@_types/nft";
 import NftList from "@ui/nft/list";
 import apiClient from "components/service/apiClient";
 import { NextPage } from "next";
@@ -5,7 +6,7 @@ import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 
 // Type definition for the role
-type Role = "user" | "verifier" | null;
+type Role = "USER" | "VERIFIER" | null;
 
 // Progress Bar Component
 const ProgressBar = ({ currentStep }: { currentStep: number }) => {
@@ -16,19 +17,17 @@ const ProgressBar = ({ currentStep }: { currentStep: number }) => {
         {steps.map((step, index) => (
           <div key={index} className="flex items-center space-x-2">
             <div
-              className={`w-8 h-8 flex items-center justify-center rounded-full ${
-                index + 1 <= currentStep
+              className={`w-8 h-8 flex items-center justify-center rounded-full ${index + 1 <= currentStep
                   ? "bg-indigo-600 text-white"
                   : "bg-gray-200 text-gray-500"
-              }`}
+                }`}
             >
               {index + 1}
             </div>
             {index < steps.length - 1 && (
               <div
-                className={`h-1 w-16 ${
-                  index + 1 < currentStep ? "bg-indigo-600" : "bg-gray-200"
-                }`}
+                className={`h-1 w-16 ${index + 1 < currentStep ? "bg-indigo-600" : "bg-gray-200"
+                  }`}
               ></div>
             )}
           </div>
@@ -42,16 +41,27 @@ const ProgressBar = ({ currentStep }: { currentStep: number }) => {
 };
 
 // Step1 Component
-const Step1 = ({ setRole, nextStep }: { setRole: (role: Role) => void; nextStep: () => void }) => {
+const Step1 = ({
+  setRole,
+  nextStep,
+  setData,
+}: {
+  setRole: (role: Role) => void;
+  nextStep: () => void;
+  setData: (field: string, value: string) => void;
+}) => {
+  const handleRoleSelect = (role: Role) => {
+    setRole(role);
+    setData("role", role || ""); // ✅ Lưu role vào data để Step2 dùng
+    nextStep();
+  };
+
   return (
     <div>
       <h2 className="text-center text-4xl font-bold mb-4">Choose Your Role</h2>
       <div className="flex justify-around">
         <div
-          onClick={() => {
-            setRole("user");
-            nextStep();
-          }}
+          onClick={() => handleRoleSelect("USER")}
           className="cursor-pointer border rounded-md p-4 w-1/3 hover:bg-gray-100"
         >
           <h3 className="text-center font-bold">User</h3>
@@ -60,10 +70,7 @@ const Step1 = ({ setRole, nextStep }: { setRole: (role: Role) => void; nextStep:
           </p>
         </div>
         <div
-          onClick={() => {
-            setRole("verifier");
-            nextStep();
-          }}
+          onClick={() => handleRoleSelect("VERIFIER")}
           className="cursor-pointer border rounded-md p-4 w-1/3 hover:bg-gray-100"
         >
           <h3 className="text-center font-bold">Verifier</h3>
@@ -75,6 +82,7 @@ const Step1 = ({ setRole, nextStep }: { setRole: (role: Role) => void; nextStep:
     </div>
   );
 };
+
 
 // Step2 Component
 const Step2 = ({
@@ -101,6 +109,7 @@ const Step2 = ({
 
   const validateFields = () => {
     const requiredFields = ["username", "email", "role"];
+    if (data.role === "verifier") requiredFields.push("copyright");
 
     const newErrors: Record<string, string> = {};
     requiredFields.forEach((field) => {
@@ -110,8 +119,6 @@ const Step2 = ({
     });
 
     setErrors(newErrors);
-
-    // Return true if there are no errors
     return Object.keys(newErrors).length === 0;
   };
 
@@ -135,9 +142,8 @@ const Step2 = ({
               name={field}
               value={data[field] || ""}
               onChange={handleChange}
-              className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm sm:text-sm ${
-                errors[field] ? "border-red-500" : ""
-              }`}
+              className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm sm:text-sm ${errors[field] ? "border-red-500" : ""
+                }`}
             />
             {errors[field] && (
               <p className="text-red-500 text-sm mt-1">{errors[field]}</p>
@@ -145,27 +151,42 @@ const Step2 = ({
           </div>
         ))}
 
-        {/* Role Selection */}
+        {/* Hiển thị role chỉ đọc */}
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700">Role</label>
-          <select
+          <input
+            type="text"
             name="role"
             value={data.role || ""}
-            onChange={handleChange}
-            className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm sm:text-sm ${
-              errors.role ? "border-red-500" : ""
-            }`}
-          >
-            <option value="">Select a role</option>
-            <option value="USER">USER</option>
-            <option value="VERIFIER">VERIFIER</option>
-          </select>
-          {errors.role && (
-            <p className="text-red-500 text-sm mt-1">{errors.role}</p>
-          )}
+            readOnly
+            className="mt-1 block w-full px-3 py-2 border rounded-md bg-gray-100 shadow-sm sm:text-sm"
+          />
         </div>
 
-        {/* Buttons */}
+        {/* Hiển thị select nếu là Verifier */}
+        {data.role === "VERIFIER" && (
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700">Copyright Type</label>
+            <select
+              name="copyright"
+              value={data["copyright"] || ""}
+              onChange={handleChange}
+              className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm sm:text-sm ${errors["copyright"] ? "border-red-500" : ""
+                }`}
+            >
+              <option value="">Select a type</option>
+              {Object.values(CopyrightType).map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
+            {errors["copyright"] && (
+              <p className="text-red-500 text-sm mt-1">{errors["copyright"]}</p>
+            )}
+          </div>
+        )}
+
         <div className="flex justify-between">
           <button
             type="button"
@@ -206,17 +227,33 @@ const Step3 = ({
   const handleSubmit = async () => {
     try {
       const apiUrl = "http://localhost:8081/auth/signup";
-      const payload = {
-        username: data.username,
-        address: account,
-        email: data.email,
-        role: data.role, // Sử dụng role từ Step 2
-      };
+      if (data.role === "VERIFIER") {
+        const payload = {
+          username: data.username,
+          address: account,
+          email: data.email,
+          role: data.role,
+          verifierType: data.copyright,
+        };
+        await apiClient(apiUrl, {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+      }
+      else {
+        const payload = {
+          username: data.username,
+          address: account,
+          email: data.email,
+          role: data.role, // Sử dụng role từ Step 2
+        };
 
-      await apiClient(apiUrl, {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
+        await apiClient(apiUrl, {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+      }
+
 
       router.push("/");
     } catch (error) {
@@ -278,7 +315,7 @@ const RegisterPage = ({ account }: { account: string | null }) => {
     <section className="flex items-center justify-center h-screen bg-gray-100">
       <div className="w-full max-w-3xl bg-white shadow-md rounded-lg p-8">
         <ProgressBar currentStep={currentStep} />
-        {currentStep === 1 && <Step1 setRole={setRole} nextStep={nextStep} />}
+        {currentStep === 1 && <Step1 setRole={setRole} nextStep={nextStep} setData={updateData} />}
         {currentStep === 2 && (
           <Step2
             closeRegisterModal={previousStep}
