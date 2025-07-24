@@ -4,7 +4,7 @@ import { useRouter } from "next/router";
 import useSWR, { mutate } from "swr";
 import { useEffect, useState } from "react";
 import BaseLayout from "@ui/layout/BaseLayout";
-import { fetch_copyright_by_id, send_email_api, update_status_copyright_by_id } from "components/fectData/fetch_copyright";
+import { fetch_copyright_by_id, send_email_api, update_gas_fee_order, update_status_copyright_by_id } from "components/fectData/fetch_copyright";
 import { useWeb3 } from "@providers/web3";
 import { data } from "framer-motion/client";
 import { BrandResponse, CopyRight, MostSimilar, Status } from "@_types/nft";
@@ -12,6 +12,7 @@ import { emailRequest } from "@_types/emailRequest";
 import { toast } from "react-toastify";
 import Link from "next/link";
 import { fetchCheckName, fetchCheckSamples } from "components/fectData/fetch_check_copyrights";
+import { ethers } from "ethers";
 
 export default function UserDetailPage() {
     const router = useRouter();
@@ -114,7 +115,38 @@ export default function UserDetailPage() {
     const [emailContent, setEmailContent] = useState("");
     const { ethereum, copyrightContract } = useWeb3();
 
+  const [verifierAddress, setVerifierAddress] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(true); // trạng thái loading
 
+  useEffect(() => {
+    const connectWallet = async () => {
+      if (!window.ethereum) {
+        console.error("MetaMask is not installed.");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const accounts = await window.ethereum.request({ method: "eth_requestAccounts" }) as string[];
+        if (!accounts || accounts.length === 0) {
+          console.error("No accounts found.");
+          setLoading(false);
+          return;
+        }
+
+        const address = accounts[0];
+        setVerifierAddress(address);
+
+
+      } catch (err) {
+        console.error("Error connecting to MetaMask:", err);
+      } finally {
+        setLoading(false); // Đảm bảo lúc nào cũng tắt loading
+      }
+    };
+
+    connectWallet();
+  }, []);
 
     const transferNft = async () => {
         if (!copyrights?.tokenId || !copyrights?.user?.address) {
@@ -123,7 +155,7 @@ export default function UserDetailPage() {
         }
 
         const tokenId = BigInt(copyrights.tokenId); // Ép kiểu về BigNumberish
-        const tx = await copyrightContract?.transferTo(tokenId, copyrights.user.address);
+        const tx = await copyrightContract?.transferTo(tokenId, verifierAddress!, copyrights.user.address);
         await toast.promise(
             tx!.wait(), {
             pending: "Transfer NFT",
@@ -132,6 +164,22 @@ export default function UserDetailPage() {
         }
         );
     }
+
+    const { provider } = useWeb3();
+
+    const getGasPrice = async () => {
+        try {
+            const gasPrice = await provider!.getGasPrice(); // Lấy giá gas hiện tại
+            console.log("Current gas price (in wei):", gasPrice.toString());
+
+            // Chuyển đổi giá gas từ wei sang ether
+            const gasPriceInEther = ethers.utils.formatEther(gasPrice);
+            console.log("Gas price in ether:", gasPriceInEther);
+        } catch (err) {
+            console.error("Failed to fetch gas price:", err);
+        }
+    };
+
 
 
     const handleUpdateStatus = async () => {
@@ -147,46 +195,73 @@ export default function UserDetailPage() {
                 return;
             }
 
-            if (newStatus == "PENDING") {
-                const tx = await copyrightContract?.updateStatus(copyrights?.tokenId, 2)
-                if (tx) {
-                    await update_status_copyright_by_id(Number(idString), newStatus);
-                }
-            }
-            else if (newStatus == "INCOMPLETE") {
-                const tx = await copyrightContract?.updateStatus(copyrights?.tokenId, 3)
-                if (tx) {
-                    await update_status_copyright_by_id(Number(idString), newStatus);
-                }
-            }
-            else if (newStatus == "PUBLISHED") {
-                const tx = await copyrightContract?.updateStatus(copyrights?.tokenId, 4)
-                await transferNft()
-                if (tx) {
-                    console.log(idString)
-                    console.log(newStatus)
-                    await update_status_copyright_by_id(Number(idString), newStatus);
-                }
-            }
-            else if (newStatus == "APPROVED") {
-                const tx = await copyrightContract?.updateStatus(copyrights?.tokenId, 5)
-                if (tx) {
-                    await update_status_copyright_by_id(Number(idString), newStatus);
-                }
-            }
-            else if (newStatus == "REJECTED") {
-                const tx = await copyrightContract?.updateStatus(copyrights?.tokenId, 6)
-                if (tx) {
-                    await update_status_copyright_by_id(Number(idString), newStatus);
-                }
+            let statusCode: number;
+            let tx: any;
 
+            switch (newStatus) {
+                case "PENDING":
+                    statusCode = 2;
+                    tx = await copyrightContract?.updateStatus(copyrights?.tokenId, statusCode);
+                    break;
+                case "INCOMPLETE":
+                    statusCode = 3;
+                    tx = await copyrightContract?.updateStatus(copyrights?.tokenId, statusCode);
+                    break;
+                case "PUBLISHED":
+                    statusCode = 4;
+                    tx = await copyrightContract?.updateStatus(copyrights?.tokenId, statusCode);
+                    //await transferNft();
+                    break;
+                case "APPROVED":
+                    statusCode = 5;
+                    tx = await copyrightContract?.updateStatus(copyrights?.tokenId, statusCode);
+                    break;
+                case "REJECTED":
+                    statusCode = 6;
+                    tx = await copyrightContract?.updateStatus(copyrights?.tokenId, statusCode);
+                    break;
+                default:
+                    return alert("Unknown status!");
             }
-            alert("Status updated successfully!");
+
+            if (!tx) {
+                alert("Transaction failed!");
+                return;
+            }
+
+            const receipt = await tx.wait();
+            const gasUsed = receipt.gasUsed;
+
+            // Handle event NftItemUpdated with explicit type
+            const event = receipt.events?.find((e: { event: string, args?: any }) => e.event === "NftItemUpdated");
+            if (event) {
+                console.log("🔥 Event NftItemUpdated emitted for token:", event.args?.tokenId.toString());
+            }
+
+            console.log("⛽ Gas used:", gasUsed.toString());
+
+            // Calculate gas cost in ETH
+            const gasPriceInWei = await provider!.getGasPrice(); // Gas price in wei
+            const gasCostInWei = gasUsed.mul(gasPriceInWei); // Gas cost in wei
+            const gasCostInETH = ethers.utils.formatEther(gasCostInWei); // Convert to ETH
+            await update_gas_fee_order(idString, parseFloat(gasCostInETH));
+            console.log("Gas cost in ETH:", gasCostInETH);
+
+            toast.success(`Updated status successfully to ${newStatus}`);
+
+            // Update status in the backend
+            await update_status_copyright_by_id(Number(idString), newStatus);
+            //alert("Status updated successfully!");
+
+            // Mutate cache
             mutate(["fetch_copyright_by_id", idString]);
         } catch (err) {
+            console.error("❌ Error:", err);
             alert("Failed to update status!");
         }
     };
+
+
 
     const handleSendEmail = async () => {
         if (!reason) {
@@ -264,8 +339,8 @@ export default function UserDetailPage() {
 
                     <div style={{ marginBottom: "20px", fontSize: "24px", fontWeight: "bold" }}>
                         <div style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
-                            <h1>Copyright Details</h1>
-                
+                            <h1>Copyright Detail</h1>
+
                         </div>
                     </div>
 
@@ -361,7 +436,7 @@ export default function UserDetailPage() {
                                     </button>
                                 </div>
                             </div>
-                            
+
                             <p>
                                 <strong>Form: </strong>
                                 <Link href={copyrights.metaData.applicationForm} legacyBehavior>
@@ -411,90 +486,129 @@ export default function UserDetailPage() {
                                 }).format(new Date(copyrights.metaData.updateAt))}
                             </p>
 
-                            <p><strong>Status:</strong> {copyrights.status}</p>
-
-                            {/* Conditionally render the dropdown and update button based on status */}
-                            {copyrights.status !== "PUBLISHED" && copyrights.status !== "REJECTED" && (
+                            {copyrights.status === "REQUEST_RENEW" && (
                                 <>
-                                    {/* Dropdown to select status */}
-                                    <select
-                                        value={newStatus}
-                                        onChange={(e) => setNewStatus(e.target.value)}
-                                        style={{ padding: "10px", borderRadius: "5px", fontSize: "16px" }}
-                                    >
-                                        <option value="">Select Status</option>
-                                        <option value="Uploaded">Uploaded</option>
-                                        <option value="PENDING">PENDING</option>
-                                        <option value="INCOMPLETE">INCOMPLETE</option>
-                                        <option value="PUBLISHED">PUBLISHED</option>
-                                        <option value="APPROVED">APPROVED</option>
-                                        <option value="REJECTED">REJECTED</option>
-                                    </select>
-                                    {/* Nếu trạng thái là "INCOMPLETE", hiển thị nút "Update Metadata" */}
-                                    {copyrights.status === "INCOMPLETE" && (
-                                        <button
-                                            style={{
-                                                marginTop: "10px",
-                                                padding: "10px 16px",
-                                                background: "#ffc107", // Màu vàng
-                                                color: "#000",
-                                                border: "none",
-                                                borderRadius: "5px",
-                                                cursor: "pointer",
-                                                fontWeight: "bold",
-                                                textTransform: "uppercase",
-                                            }}
-                                            onClick={handleUpdateMetadata} // Hàm xử lý cập nhật metadata
-                                        >
-                                            Update Metadata
-                                        </button>
-                                    )}
+<p> 
+                                        <strong>Expired At: </strong>
+                                        {new Intl.DateTimeFormat("vi-VN", {
+                                            day: "2-digit",
+                                            month: "2-digit",
+                                            year: "numeric",
+                                        }).format(new Date(copyrights.metaData.expiredAt))}
+                                    </p>
+                                </>)}
 
-                                    {/* If "Rejected" or "Incomplete" is selected, show form for email */}
-                                    <>
-                                        {(newStatus === "REJECTED" || newStatus === "INCOMPLETE") && (
-                                            <div>
-                                                <p><strong>Email to send:</strong> {copyrights.user.email}</p>
-                                                <p><strong>Subject:</strong> {newStatus === "REJECTED" ? "Rejection Notice" : "Information Missing"}</p>
+                                    <p><strong>Status:</strong> {copyrights.status}</p>
+                                    {
+                                        copyrights.status === "PUBLISHED" && (
+                                            <p>
+                                                <strong>Expired time: </strong> {copyrights.metaData.expiredAt}
+                                            </p>
+                                        )
+                                    }
 
-
-
-                                                {/* Textarea nhập nội dung */}
-                                                <textarea
-                                                    id="reasonTextarea"
-                                                    placeholder={newStatus === "REJECTED" ? "Enter reason for rejection..." : "Enter details for missing information..."}
-                                                    value={reason}
-                                                    onChange={(e) => setReason(e.target.value)}
-                                                    style={{ padding: "10px", fontSize: "16px", width: "100%", height: "100px", marginTop: "10px" }}
-                                                />
-
-                                                {/* Nút gửi email */}
+                                    {/* Conditionally render the dropdown and update button based on status */}
+                                    {copyrights.status !== "PUBLISHED" && copyrights.status !== "REJECTED" && (
+                                        <>
+                                            {/* Dropdown to select status */}
+                                            <select
+                                                value={newStatus}
+                                                onChange={(e) => setNewStatus(e.target.value)}
+                                                style={{ padding: "10px", borderRadius: "5px", fontSize: "16px" }}
+                                            >
+                                                <option value="">Select Status</option>
+                                                <option value="Uploaded">Uploaded</option>
+                                                <option value="PENDING">PENDING</option>
+                                                <option value="INCOMPLETE">INCOMPLETE</option>
+                                                <option value="PUBLISHED">PUBLISHED</option>
+                                                <option value="APPROVED">APPROVED</option>
+                                                <option value="REJECTED">REJECTED</option>
+                                            </select>
+                                            {/* Nếu trạng thái là "INCOMPLETE", hiển thị nút "Update Metadata" */}
+                                            {copyrights.status === "INCOMPLETE" && (
                                                 <button
                                                     style={{
                                                         marginTop: "10px",
                                                         padding: "10px 16px",
-                                                        background: "#28a745",
-                                                        color: "#fff",
+                                                        background: "#ffc107", // Màu vàng
+                                                        color: "#000",
                                                         border: "none",
                                                         borderRadius: "5px",
                                                         cursor: "pointer",
                                                         fontWeight: "bold",
                                                         textTransform: "uppercase",
                                                     }}
-                                                    onClick={() => handleSendEmail()}
+                                                    onClick={handleUpdateMetadata} // Hàm xử lý cập nhật metadata
                                                 >
-                                                    Send Email
+                                                    Update Metadata
                                                 </button>
-                                            </div>
-                                        )}
-                                    </>
+                                            )}
 
-                                    {/* Update Status button */}
+                                            {/* If "Rejected" or "Incomplete" is selected, show form for email */}
+                                            <>
+                                                {(newStatus === "REJECTED" || newStatus === "INCOMPLETE") && (
+                                                    <div>
+                                                        <p><strong>Email to send:</strong> {copyrights.user.email}</p>
+                                                        <p><strong>Subject:</strong> {newStatus === "REJECTED" ? "Rejection Notice" : "Information Missing"}</p>
+
+
+
+                                                        {/* Textarea nhập nội dung */}
+                                                        <textarea
+                                                            id="reasonTextarea"
+                                                            placeholder={newStatus === "REJECTED" ? "Enter reason for rejection..." : "Enter details for missing information..."}
+                                                            value={reason}
+                                                            onChange={(e) => setReason(e.target.value)}
+                                                            style={{ padding: "10px", fontSize: "16px", width: "100%", height: "100px", marginTop: "10px" }}
+                                                        />
+
+                                                        {/* Nút gửi email */}
+                                                        <button
+                                                            style={{
+                                                                marginTop: "10px",
+                                                                padding: "10px 16px",
+                                                                background: "#28a745",
+                                                                color: "#fff",
+                                                                border: "none",
+                                                                borderRadius: "5px",
+                                                                cursor: "pointer",
+                                                                fontWeight: "bold",
+                                                                textTransform: "uppercase",
+                                                            }}
+                                                            onClick={() => handleSendEmail()}
+                                                        >
+                                                            Send Email
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </>
+
+                                            {/* Update Status button */}
+                                            <button
+                                                style={{
+                                                    marginTop: "10px",
+                                                    padding: "10px 16px",
+                                                    background: "#28a745",
+                                                    color: "#fff",
+                                                    border: "none",
+                                                    borderRadius: "5px",
+                                                    cursor: "pointer",
+                                                    fontWeight: "bold",
+                                                    textTransform: "uppercase",
+                                                }}
+                                                onClick={handleUpdateStatus}
+                                            >
+                                                Update Status
+                                            </button>
+                                        </>
+                                    )}
+
+                                    {/* Back button */}
                                     <button
                                         style={{
-                                            marginTop: "10px",
+                                            marginTop: "15px",
                                             padding: "10px 16px",
-                                            background: "#28a745",
+                                            background: "#0070f3",
                                             color: "#fff",
                                             border: "none",
                                             borderRadius: "5px",
@@ -502,35 +616,15 @@ export default function UserDetailPage() {
                                             fontWeight: "bold",
                                             textTransform: "uppercase",
                                         }}
-                                        onClick={handleUpdateStatus}
+                                        onClick={() => router.push("/verifier/Copyrights")}
                                     >
-                                        Update Status
+                                        Back
                                     </button>
-                                </>
-                            )}
-
-                            {/* Back button */}
-                            <button
-                                style={{
-                                    marginTop: "15px",
-                                    padding: "10px 16px",
-                                    background: "#0070f3",
-                                    color: "#fff",
-                                    border: "none",
-                                    borderRadius: "5px",
-                                    cursor: "pointer",
-                                    fontWeight: "bold",
-                                    textTransform: "uppercase",
-                                }}
-                                onClick={() => router.push("/verifier/Copyrights")}
-                            >
-                                Back
-                            </button>
-                        </div>
-                    ) : (
-                        <p style={{ textAlign: "center", fontWeight: "bold", color: "red" }}>User not found</p>
+                                </div>
+                            ) : (
+                            <p style={{ textAlign: "center", fontWeight: "bold", color: "red" }}>User not found</p>
                     )}
-                </div>
+                        </div>
             </div>
         </BaseLayout>
 

@@ -22,6 +22,11 @@ const Home: NextPage = () => {
     router.push(`/verifier/dashboard`);
     return null;
   }
+  if(account.isMember == true && account.isCheck == true){
+    console.log("member")
+    router.push(`/member/dashboard`);
+    return null;
+  }
   return (
     <BaseLayout>
       <div className="scroll-smooth scroll-snap-y h-screen w-screen overflow-y-scroll">

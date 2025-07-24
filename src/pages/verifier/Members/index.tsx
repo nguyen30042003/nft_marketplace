@@ -1,34 +1,72 @@
+/* eslint-disable react-hooks/rules-of-hooks */
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useEffect, useState } from "react";
 import BaseLayout from "@ui/layout/BaseLayout";
 import Table from "@ui/table";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { create_member_by_verifier, deleteUser, useApproveUser, useMemberByVerifer } from "components/fectData/fetch_user";
+import { create_member_by_verifier, deleteUser, get_user_by_verifer_address, get_user_member_by_verifer_address, useApproveUser, useFetchUserByAddress, User } from "components/fectData/fetch_user";
 import { useWeb3 } from "@providers/web3";
-import { Member } from "@_types/nft";
+import { Member, Status } from "@_types/nft";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { CalendarIcon, ChevronDown, Search } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Input } from "@/components/ui/input";
+import { DataTransactionTable } from "@ui/table/TransactionTable";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import useSWR from "swr";
+import { DataTableMember } from "@ui/table/table_member";
+import { tr, u } from "framer-motion/client";
+import { useTransaction } from "components/service/transaction";
+
+
+enum Statuses {
+  NOT_APPROVED = "NOT APPROVED",
+  APPROVED = "APPROVED",
+}
 
 const ListUser: React.FC = () => {
-  const [searchTerm, setSearchTerm] = useState<string>("");
-  const [selectedRole, setSelectedRole] = useState<string>("all");
-  const [startDate, setStartDate] = useState<Date | null>(null);
-  const [endDate, setEndDate] = useState<Date | null>(null);
-  const [selectedUser, setSelectedUser] = useState<any | null>(null);
-  const [approvedAddress, setApprovedAddress] = useState<string | null>(null);
-  const [userAddress, setUserAddress] = useState<string | null>(null);
+  const [startDate, setStartDate] = useState<Date | undefined>(new Date("2025-04-01T00:00:00"));
+  const [endDate, setEndDate] = useState<Date | undefined>(new Date());
+  const [searchText, setSearchText] = useState<string>("");
+  const [currentPage, setCurrentPage] = useState(0);
+  const itemsPerPage = 10;
 
-  const { isLoading: approving, isError: approveError } = useApproveUser(approvedAddress || "");
   const { ethereum, copyrightContract } = useWeb3();
+  const [selectedStatus, setSelectedStatus] = useState<Statuses>(Statuses.APPROVED);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [userAddress, setUserAddress] = useState<string | null>("");
 
+  const [newMember, setNewMember] = useState({
+    address: "",
+    name: "",
+    email: "",
+  });
+
+  const [showCreateForm, setShowCreateForm] = useState<boolean>(false);
+  const [showDialog, setShowDialog] = useState(false);
+  const [showDialogTrue, setShowDialogTrue] = useState(false);
+
+  const { sendTransaction, transactionSuccess, setTransactionSuccess } = useTransaction();
+
+  useEffect(() => {
+    if (transactionSuccess) {
+      setShowDialogTrue(true);
+    }
+  }, [transactionSuccess]);
+  // Kết nối ví MetaMask
   useEffect(() => {
     const connectWallet = async () => {
       if (window.ethereum) {
         try {
-          const accounts = await window.ethereum.request({
-            method: "eth_requestAccounts",
-          }) as string[];
-
+          const accounts = await window.ethereum.request({ method: "eth_requestAccounts" }) as string[];
           if (accounts.length > 0) {
             setUserAddress(accounts[0]);
+            console.log("Connected to MetaMask:", accounts[0]);
           }
         } catch (error) {
           console.error("Error connecting to MetaMask:", error);
@@ -41,63 +79,113 @@ const ListUser: React.FC = () => {
     connectWallet();
   }, []);
 
-  const { users, isLoading, isError } = useMemberByVerifer(userAddress ?? "");
+  // Lấy thông tin user từ địa chỉ ví
+  const { data: userData, isError: isUserError } = useFetchUserByAddress(userAddress || "");
+  const [id, setId] = useState<string | null>(null);
 
-  const columns = [
-    { header: "Username", accessor: "username", className: "text-left" },
-    { header: "Email", accessor: "email", className: "text-left" },
-    { header: "Address", accessor: "address", className: "text-left" },
-    { header: "Role", accessor: "role", className: "text-left" },
-    { header: "Created At", accessor: "createdAt", className: "text-left" },
-    { header: "Actions", accessor: "actions", className: "text-center" },
-  ];
+  useEffect(() => {
+    if (userData) {
+      setId(userData.id.toString());
+    }
+  }, [userData]);
 
-  const transformedData =
-    users?.map((user) => ({
-      id: user.id,
-      username: user.username,
-      email: user.email,
-      address: user.address,
-      role: user.role,
-      isApprove: user.isApprove,
-      createdAt: new Date(user.createAt),
-    })) || [];
-
-  const filteredData = transformedData.filter((item) => {
-    const matchesSearchTerm =
-      item.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.address.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesRole =
-      selectedRole === "all" || item.role.toLowerCase() === selectedRole;
-
-    const matchesDateRange =
-      (!startDate || item.createdAt >= startDate) &&
-      (!endDate || item.createdAt <= endDate);
-
-    return matchesSearchTerm && matchesRole && matchesDateRange;
+  // Filter
+  const [filter, setFilter] = useState({
+    startDate: startDate,
+    endDate: endDate,
+    searchText: "",
+    selectedStatus: Statuses.APPROVED
   });
 
-  const handlePreview = (user: any) => {
+  useEffect(() => {
+    if (shouldFetch()) {
+      setIsInitialLoad(true);
+      setCurrentPage(0);
+    }
+  }, [startDate, endDate]);
+
+  // Lấy tổng số bản ghi
+  const { data: copyightLength } = useSWR(
+    startDate && endDate && selectedStatus && userAddress
+      ? [filter.startDate, filter.endDate, filter.searchText, filter.selectedStatus]
+      : null,
+    () => get_user_member_by_verifer_address(
+      userAddress || "",
+      filter.searchText,
+      filter.selectedStatus,
+      new Date(filter.startDate!),
+      new Date(filter.endDate!)
+    ),
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+    }
+  );
+
+  // Lấy danh sách phân trang
+  const { data: userPagination, error, isLoading } = useSWR(
+    startDate && endDate && selectedStatus && userAddress
+      ? [filter.startDate, filter.endDate, currentPage, filter.searchText, filter.selectedStatus, userAddress]
+      : null,
+    () => {
+      return get_user_by_verifer_address(
+        userAddress || "",
+        filter.searchText,
+        selectedStatus,
+        new Date(filter.startDate!),
+        new Date(filter.endDate!),
+        currentPage,
+        itemsPerPage
+      );
+    },
+    {
+      onSuccess: () => setIsInitialLoad(false),
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+    }
+  );
+
+  const totalPages = copyightLength ? Math.ceil(copyightLength / itemsPerPage) : 1;
+
+  function shouldFetch(): boolean {
+    return startDate !== undefined && endDate !== undefined;
+  }
+
+  const handleSearch = () => {
+    setFilter({
+      startDate,
+      endDate,
+      searchText,
+      selectedStatus
+    });
+    setCurrentPage(1);
+  };
+
+  const handlePreview = (user: User) => {
     setSelectedUser(user);
   };
 
-  const [showCreateForm, setShowCreateForm] = useState<boolean>(false);
-  const [newMember, setNewMember] = useState({
-    address: "",
-    name: "",
-    email: "",
-  });
-
+  const handleCreateMember = async () => {
+    if (newMember.address && newMember.name && newMember.email && userData) {
+      const newMemberData: Member = {
+        address: newMember.address,
+        username: newMember.name,
+        email: newMember.email,
+        role: "MEMBER",
+        isApprove: false,
+        isStaff: true,
+        idVerifier: userData.id,
+      };
+      console.log("Creating new member:", newMemberData);
+      await sendTransaction("0x4b3B5a23Ed2F91F7d777237038Da7B8bE4eC9001", 0.000005, "0", false, Status.APPROVED);
+      await create_member_by_verifier(newMemberData);
+    }
+  };
 
   const handleDelete = async (id: string) => {
     await deleteUser(id);
   };
-  const [showDialog, setShowDialog] = useState(false);
-
-
-  if (isLoading) {
+    if (isLoading) {
     return (
       <BaseLayout>
         <p>Loading...</p>
@@ -105,225 +193,298 @@ const ListUser: React.FC = () => {
     );
   }
 
-  if (isError) {
-    return (
-      <BaseLayout>
-        <p>Error loading data...</p>
-      </BaseLayout>
-    );
-  }
-
   return (
     <BaseLayout>
       <div className="p-4">
-        <h1 className="text-lg font-bold mb-4">Members List</h1>
-        <div className="mb-4 grid grid-cols-1 lg:grid-cols-4 gap-4">
-          <input
-            type="text"
-            placeholder="Search users..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="p-2 border border-gray-300 rounded"
-          />
-          <select
-            value={selectedRole}
-            onChange={(e) => setSelectedRole(e.target.value)}
-            className="p-2 border border-gray-300 rounded"
-          >
-            <option value="all">All Roles</option>
-            <option value="user">User</option>
-            <option value="verifier">Verifier</option>
-          </select>
-          <DatePicker
-            selected={startDate}
-            onChange={(date) => setStartDate(date)}
-            placeholderText="Start Date"
-            className="p-2 border border-gray-300 rounded"
-          />
-          <DatePicker
-            selected={endDate}
-            onChange={(date) => setEndDate(date)}
-            placeholderText="End Date"
-            className="p-2 border border-gray-300 rounded"
-          />
-        </div>
-        <button
-          onClick={() => setShowCreateForm(true)}
-          className="inline-flex justify-center py-2 px-4 mb-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
-        >
-          Add new member
-        </button>
-        <Table
-          columns={columns}
-          data={filteredData}
-          renderRow={(item) => (
-            <>
-              <td className="px-4 py-2">{item.username}</td>
-              <td className="px-4 py-2">{item.email}</td>
-              <td className="px-4 py-2">{item.address}</td>
-              <td className="px-4 py-2">{item.role}</td>
-              <td className="px-4 py-2">{item.createdAt.toLocaleDateString()}</td>
-              <td className="px-4 py-2 text-center">
-                <button
-                  className="text-blue-500 hover:underline"
-                  onClick={() => handlePreview(item)}
-                >
-                  Preview
-                </button>
-              </td>
-            </>
-          )}
-        />
-        {showCreateForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-            <div className="bg-white shadow-md rounded-lg p-6 border border-gray-200 relative w-full max-w-xl mx-4">
-              <button
-                className="absolute top-2 right-2 text-gray-500 hover:text-red-500 text-xl font-bold"
-                onClick={() => setShowCreateForm(false)}
-              >
-                ×
-              </button>
-              <h2 className="text-xl font-bold mb-4">Add New Member</h2>
+        <h1 className="text-lg font-bold mb-4">Members</h1>
 
-              <div className="space-y-4">
-                <div>
-                  <label className="block font-medium mb-1">Address</label>
-                  <input
+        <div className="mb-6 flex flex-col sm:flex-row gap-4 items-start">
+          {/* Start Date */}
+          <div className="w-full sm:w-auto flex items-center gap-2">
+            <span className="text-sm font-medium whitespace-nowrap">Start Date</span>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-[200px] justify-start text-left font-normal"
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {startDate ? format(startDate, "PPP") : <span>Pick a date</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={startDate}
+                  onSelect={setStartDate}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          {/* End Date */}
+          <div className="w-full sm:w-auto flex items-center gap-2">
+            <span className="text-sm font-medium whitespace-nowrap">End Date</span>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-[200px] justify-start text-left font-normal"
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {endDate ? format(endDate, "PPP") : <span>Pick a date</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={endDate}
+                  onSelect={setEndDate}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="w-[250px] justify-between">
+                <span className="truncate">
+                  {selectedStatus || "Select status"}
+                </span>
+                <ChevronDown className="h-4 w-4 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+
+            <PopoverContent className="w-[250px] p-2">
+              <RadioGroup
+                value={selectedStatus}
+                onValueChange={(value) => setSelectedStatus(value as Statuses)}
+                className="flex flex-col gap-2 max-h-60 overflow-y-auto"
+              >
+                {Object.values(Statuses).map((status) => (
+                  <label key={status} className="flex items-center gap-2 cursor-pointer">
+                    <RadioGroupItem value={status} id={status} />
+                    <span>{status}</span>
+                  </label>
+                ))}
+              </RadioGroup>
+            </PopoverContent>
+          </Popover>
+
+          <div className="relative w-full flex gap-2">
+            <div className="relative flex-grow">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 h-4 w-8" />
+              <Input
+                type="text"
+                placeholder="Search..."
+                className="pl-10 pr-4 py-2 w-full"
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+              />
+            </div>
+            <button
+              onClick={handleSearch}
+              className="bg-black text-white px-5 py-2 rounded-md hover:bg-gray-900 focus:outline-none focus:ring focus:border-gray-300"
+            >
+              Search
+            </button>
+          </div>
+        </div>
+        <div className="mb-4 flex justify-between items-center">
+          <Button
+            className="bg-black text-white hover:bg-slate-700"
+            variant="outline"
+            onClick={() => setShowCreateForm(!showCreateForm)}
+          >
+            Create Member
+          </Button>
+        </div>
+
+        <div className="px-5 py-2 bg-white rounded-lg shadow-md overflow-hidden">
+          {isLoading && !userPagination?.content ? (
+            <p>Loading initial users...</p>
+          ) : error ? (
+            <p>Error loading users.</p>
+          ) : (
+            <DataTableMember
+              data={userPagination?.content || []}
+              onPreview={handlePreview}
+            />
+
+          )}
+
+        </div>
+        {showCreateForm && (
+          <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-40">
+            <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+              <h2 className="text-2xl font-semibold text-gray-800 mb-6 border-b pb-2">👤 Create Member</h2>
+
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (newMember.address && newMember.name && newMember.email) {
+                    try {
+                      setNewMember({ address: newMember.address, name: newMember.name, email: newMember.email });
+                      setShowCreateForm(false);
+                    } catch (error) {
+                      console.error("Create member failed", error);
+                    }
+                  }
+                }}
+                className="space-y-4 text-base text-gray-700"
+              >
+                <div className="mb-4">
+                  <label className="block text-sm font-medium mb-1">Address</label>
+                  <Input
                     type="text"
                     value={newMember.address}
                     onChange={(e) => setNewMember({ ...newMember, address: e.target.value })}
-                    className="w-full p-2 border border-gray-300 rounded"
+                    required
                   />
                 </div>
-
-                <div>
-                  <label className="block font-medium mb-1">Name</label>
-                  <input
+                <div className="mb-4">
+                  <label className="block text-sm font-medium mb-1">Name</label>
+                  <Input
                     type="text"
                     value={newMember.name}
                     onChange={(e) => setNewMember({ ...newMember, name: e.target.value })}
-                    className="w-full p-2 border border-gray-300 rounded"
+                    required
                   />
                 </div>
-
-                <div>
-                  <label className="block font-medium mb-1">Email</label>
-                  <input
+                <div className="mb-4">
+                  <label className="block text-sm font-medium mb-1">Email</label>
+                  <Input
                     type="email"
                     value={newMember.email}
                     onChange={(e) => setNewMember({ ...newMember, email: e.target.value })}
-                    className="w-full p-2 border border-gray-300 rounded"
+                    required
                   />
                 </div>
-              </div>
 
-              <button
-                onClick={async () => {
-                  try {
-                    if (!newMember.address || !newMember.name || !newMember.email) {
-                      alert("Please fill in all fields.");
-                      return;
-                    }
-
-                    // await copyrightContract?.addUser(
-                    //   newMember.address,
-                    //   newMember.name,
-                    //   newMember.email,
-                    //   "", // Giả định chưa cần description
-                    //   "user" // hoặc bạn có thể cho chọn role
-                    // );
-
-                    const member: Member = {
-                      username: newMember.name,
-                      address: newMember.address,
-                      email: newMember.email,
-                      role: "MEMBER",
-                      isApprove: false,
-                      isStaff: false,
-                      idVerifier: 3,
-                    };
-
-                    await create_member_by_verifier(member);
-
-                    alert("Member created successfully!");
-                    setShowCreateForm(false);
-                    window.location.reload();
-                  } catch (err) {
-                    console.error("Create error:", err);
-                    alert("Failed to create member.");
-                  }
-                }}
-                className="mt-6 w-full py-2 px-4 bg-green-600 text-white rounded-md hover:bg-green-700"
-              >
-                Create
-              </button>
+                <div className="flex justify-end space-x-4">
+                  <Button
+                    type="button"
+                    className="bg-slate-300 text-black hover:bg-slate-700"
+                    onClick={() => setShowCreateForm(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="bg-black text-white hover:bg-slate-700"
+                    onClick={() => setShowDialog(true)}
+                  >
+                    Create Member
+                  </Button>
+                </div>
+              </form>
             </div>
           </div>
         )}
         {selectedUser && (
-  <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-    <div className="bg-white shadow-md rounded-lg p-6 border border-gray-200 relative w-full max-w-xl mx-4">
-      <button
-        className="absolute top-2 right-2 text-gray-500 hover:text-red-500 text-xl font-bold"
-        onClick={() => setSelectedUser(null)}
-      >
-        ×
-      </button>
-      <h2 className="text-xl font-bold mb-4">User Details</h2>
-      <p><strong>Username:</strong> {selectedUser.username}</p>
-      <p><strong>Email:</strong> {selectedUser.email}</p>
-      <p><strong>Address:</strong> {selectedUser.address}</p>
-      <p><strong>Role:</strong> {selectedUser.role}</p>
-      <p>
-        <strong>Approve:</strong>{" "}
-        {selectedUser?.isApprove ? "Approved" : "Not Approved"}
-      </p>
-      <p><strong>Created At:</strong> {new Date(selectedUser.createdAt).toLocaleDateString()}</p>
-      <div className="mt-4">
-        <button
-          className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-          onClick={() => setShowDialog(true)}
-        >
-          Delete
-        </button>
-      </div>
-    </div>
-
-    {/* Dialog should be inside the same wrapper to appear above */}
-    {showDialog && (
-      <div className="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50">
-        <div className="bg-white p-8 rounded-2xl shadow-2xl max-w-lg w-full text-center transform scale-105 transition-all">
-          <h2 className="text-2xl font-bold text-gray-800">Delete Account Member</h2>
-          <p className="mt-2 text-gray-600">Are you sure you want to delete this account?</p>
-          <div className="mt-6 flex justify-center space-x-5">
-            <button
-              className="px-6 py-3 bg-gray-300 rounded-lg hover:bg-gray-400 transition"
-              onClick={() => setShowDialog(false)}
-            >
-              Cancel
-            </button>
-            <button
-              className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
-              onClick={async () => {
-                await handleDelete(selectedUser.id);
-                setShowDialog(false);
-                setSelectedUser(null); // optionally close details after delete
-                window.location.reload();
-              }}
-            >
-              Confirm
-            </button>
+          <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-40">
+            <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+              <h2 className="text-2xl font-semibold text-gray-800 mb-6 border-b pb-2">👤 Preview User</h2>
+              <div className="space-y-4 text-base text-gray-700">
+                <p><strong>Username:</strong> {selectedUser.username}</p>
+                <p><strong>Email:</strong> {selectedUser.email}</p>
+                <p><strong>Address:</strong> {selectedUser.address}</p>
+                <p><strong>Role:</strong> {selectedUser.role}</p>
+                <p><strong>Active:</strong> {selectedUser.isApprove ? true : false}</p>
+                <p><strong>Created At:</strong> {new Date(selectedUser.createAt).toLocaleDateString("vi-VN")}</p>
+              </div>
+              <div className="flex justify-end mt-8 space-x-3">
+                <Button variant="outline" onClick={() => {
+                  setSelectedUser(null);
+                  setShowCreateForm(false);
+                }} className="px-6 py-2 text-base">Close</Button>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
-    )}
-  </div>
-)}
+        )}
 
+            {showDialog && (
+              <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-40">
+                <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-lg text-center">
+                  <h2 className="text-2xl font-semibold text-gray-800 mb-4 border-b pb-2">💳 Payment Confirmation</h2>
+                  <p className="text-gray-700 text-base">
+                    Are you sure you want to proceed with the payment?
+                  </p>
+                  <div className="mt-6 flex justify-end space-x-4">
+                    <button
+                      className="px-6 py-2 text-base bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition"
+                      onClick={() => setShowDialog(false)}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      className="px-6 py-2 text-base bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
+                      onClick={handleCreateMember}
+                    >
+                      Confirm
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
+            {showDialogTrue && (
+              <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-40">
+                <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-lg text-center">
+                  <h2 className="text-2xl font-semibold text-green-600 mb-4 border-b pb-2">🎉 Payment Successful!</h2>
+                  <p className="text-gray-700 text-base">
+                    Thank you for your payment. Please wait for the verifier’s response.
+                  </p>
+                  <div className="mt-6 flex justify-center">
+                    <button
+                      className="bg-blue-500 text-white px-6 py-2 text-base rounded-lg hover:bg-blue-600 transition"
+                      onClick={() => {
+                        setTransactionSuccess(false);
+                        window.location.reload();
+                      }}
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+        {shouldFetch() && (
+          <div className="flex justify-center mt-4">
+            <Pagination>
+              <PaginationContent>
+                {currentPage > 1 && (
+                  <PaginationItem>
+                    <PaginationPrevious onClick={() => setCurrentPage((prev) => prev - 1)} />
+                  </PaginationItem>
+                )}
+                {Array.from({ length: totalPages }, (_, i) => (
+                  <PaginationItem key={i + 1}>
+                    <PaginationLink
+                      isActive={i + 1 === currentPage}
+                      onClick={() => setCurrentPage(i + 1)}
+                      href="#"
+                    >
+                      {i + 1}
+                    </PaginationLink>
+                  </PaginationItem>
+                ))}
+                {currentPage < totalPages - 1 && (
+                  <PaginationItem>
+                    <PaginationNext onClick={() => setCurrentPage((prev) => prev + 1)} />
+                  </PaginationItem>
+                )}
+              </PaginationContent>
+            </Pagination>
+          </div>
+        )}
       </div>
     </BaseLayout>
   );
 };
 
 export default ListUser;
+
+

@@ -11,6 +11,7 @@ import Menu from "@ui/menu";
 import Menu_Verifier from "@ui/menu/verifier/index";
 import NavbarVerifier from "@ui/navbar/navbar_verifier";
 import Image from "next/image";
+import Menu_Member from "@ui/menu/member";
 
 const BaseLayout: FunctionComponent<Props> = ({ children }) => {
 
@@ -23,7 +24,7 @@ const BaseLayout: FunctionComponent<Props> = ({ children }) => {
         {/* Sidebar */}
         <div className="w-[14%] p-4 bg-white">
           <Link href="/" className="flex items-center justify-center gap-2">
-            <span className="hidden lg:block font-bold">SchooLama</span>
+            <span className="hidden lg:block font-bold">ADMIN</span>
           </Link>
           <Menu />
         </div>
@@ -49,7 +50,7 @@ const BaseLayout: FunctionComponent<Props> = ({ children }) => {
         </div>
         {/* Main content */}
         <div className="flex-1 bg-[#F7F8FA] overflow-y-auto">
-          <NavbarVerifier /> {children}</div>
+           {children}</div>
       </div>
     );
   }
@@ -58,11 +59,12 @@ const BaseLayout: FunctionComponent<Props> = ({ children }) => {
     return (
       <div className="h-screen flex">
         {/* Sidebar */}
-        <div className="w-[14%] p-4 bg-white">
-          <Link href="/" className="flex items-center justify-center gap-2">
-            <span className="hidden lg:block font-bold">MEMBER</span>
+        <div className="w-[14%] p-4 bg-black">
+        <Link href="/" className="flex flex-col items-center justify-center gap-2 mb-6">
+            <Image src="/images/icon/lg.jpg" alt="Verifier Logo" width={62} height={62} />
+            <span className="text-white font-bold text-lg">MEMBER</span>
           </Link>
-          <Menu_Verifier />
+          <Menu_Member />
         </div>
         {/* Main content */}
         <div className="flex-1 bg-[#F7F8FA] overflow-y-auto">{children}</div>
@@ -74,7 +76,7 @@ const BaseLayout: FunctionComponent<Props> = ({ children }) => {
     return (
       <>
         <Navbar />
-        <div className="py-16 bg-gray-50 overflow-hidden min-h-screen">
+        <div className="py-8 bg-gray-50 overflow-hidden min-h-screen">
           <div className="max-x-7xl mx-auto px-4 space-y-8 sm:px-6 lg:px-8">
             {children}
           </div>

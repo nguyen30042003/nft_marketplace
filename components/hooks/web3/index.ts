@@ -1,4 +1,5 @@
 import { useHooks } from "@providers/web3"
+import { console } from "inspector";
 
 
 
@@ -21,18 +22,20 @@ export const useNetwork = () => {
 
 export const useListedNfts = () => {
   const hooks = useHooks();
-  const swrRes = hooks.useListedNfts();
+  const {getNftDetail, getStatusHistory, ...swrRes} = hooks.useListedNfts();
 
   return {
-    nfts: swrRes
+    nfts: swrRes,
+    getNftDetail,
+    getStatusHistory
   }
 }
 
 export const useOwnedNfts = () => {
   const hooks = useHooks();
-  const swrRes = hooks.useOwnedNfts();
-
+  const { getStatusHistory, ...swrRes } = hooks.useOwnedNfts();
   return {
-    nfts: swrRes
+    nfts: swrRes,
+    getStatusHistory
   }
 }

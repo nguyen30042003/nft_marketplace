@@ -9,6 +9,7 @@ import router from 'next/router';
 import { a } from 'framer-motion/client';
 import { fetch_copyright_by_tokenId } from 'components/fectData/fetch_copyright';
 import useSWR from 'swr';
+import { get } from 'http';
 
 const tabs = [
   { name: 'Your Collection', href: '#', current: true },
@@ -18,10 +19,11 @@ function classNames(...classes: string[]) {
 }
 const Profile: NextPage = () => {
 
-  const { nfts }  = useOwnedNfts();
+  const { nfts, getStatusHistory } = useOwnedNfts();
   const [activeNft, setActiveNft] = useState<Nft>();
 
   useEffect(() => {
+    console.log(nfts.data)
     if (nfts.data && nfts.data.length > 0) {
       setActiveNft(nfts.data[0]);
     }
@@ -30,17 +32,41 @@ const Profile: NextPage = () => {
 
 
   const [tokenId, setTokenId] = useState<string | undefined>();
-  
+
   useEffect(() => {
     if (activeNft) {
       setTokenId(activeNft.tokenId.toString());
     }
   }, [activeNft]);
-  
+
+
+
   const { data: copyright, error: copyrightError, isLoading: isCopyrightLoading } = useSWR(
     tokenId ? ["fetch_copyright_by_tokenId", tokenId] : null,
-    () => fetch_copyright_by_tokenId(tokenId as string)
+    () => {
+      getStatusHistory(parseInt(tokenId as string)).then((res) => {
+        console.log(res)
+      })
+      return fetch_copyright_by_tokenId(tokenId as string);
+    }
   );
+  const [showDialog, setShowDialog] = useState(false);
+  const [showDialog2, setShowDialog2] = useState(false);
+  const handleTransfer = () => {
+    if (copyright?.status === "EXPIRED") {
+      setShowDialog(true);
+      return;
+    }
+    else if (copyright?.status === "REQUEST_RENEW") {
+      setShowDialog2(true);
+      return;
+    }
+    router.push(`/transfer/${activeNft?.tokenId}`);
+  };
+  const closeDialog = () => {
+    setShowDialog(false); // Đóng dialog
+  };
+
 
 
   console.log(nfts)
@@ -90,7 +116,7 @@ const Profile: NextPage = () => {
                         className="relative">
                         <div
                           className={classNames(
-                            nft.tokenId === activeNft?.tokenId 
+                            nft.tokenId === activeNft?.tokenId
                               ? 'ring-2 ring-offset-2 ring-indigo-500'
                               : 'focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-offset-gray-100 focus-within:ring-indigo-500',
                             'group block w-full aspect-w-10 aspect-h-7 rounded-lg bg-gray-100 overflow-hidden'
@@ -100,7 +126,7 @@ const Profile: NextPage = () => {
                             src={nft.meta.samples}
                             alt=""
                             className={classNames(
-                              nft.tokenId === activeNft?.tokenId  ? '' : 'group-hover:opacity-75',
+                              nft.tokenId === activeNft?.tokenId ? '' : 'group-hover:opacity-75',
                               'object-cover pointer-events-none'
                             )}
                           />
@@ -120,41 +146,90 @@ const Profile: NextPage = () => {
 
             {/* Details sidebar */}
             <aside className="hidden w-96 bg-white p-8 border-l border-gray-200 overflow-y-auto lg:block">
-            { activeNft  &&
-              <div className="pb-16 space-y-6">
-                <div>
-                  <div className="block w-full aspect-w-10 aspect-h-7 rounded-lg overflow-hidden">
-                  <img src={activeNft.meta.samples} alt="" className="object-cover" />
-                  </div>
-                  <div className="mt-4 flex items-start justify-between">
-                    <div>
-                      <h2 className="text-lg font-medium text-gray-900">
-                        <span className="sr-only">Details for </span>
-                        {activeNft.meta.name}
-                      </h2>
-                      <p className="text-sm font-medium text-gray-500">{activeNft.meta.description}</p>
+              {activeNft &&
+                <div className="pb-16 space-y-6">
+                  <div>
+                    <div className="block w-full aspect-w-10 aspect-h-7 rounded-lg overflow-hidden">
+                      <img src={activeNft.meta.samples} alt="" className="object-cover" />
+                    </div>
+                    <div className="mt-4 flex items-start justify-between">
+                      <div>
+                        <h2 className="text-lg font-medium text-gray-900">
+                          <span className="sr-only">Details for </span>
+                          {activeNft.meta.name}
+                        </h2>
+                        <p className="text-sm font-medium text-gray-500">{activeNft.meta.description}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="flex">
-                  <button
-                    type="button"
-                    className="flex-1 bg-indigo-600 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                  >
-                    View detail
-                  </button>
+                  <div className="flex">
+                    <button
+                      type="button"
+                      className="flex-1 bg-indigo-600 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    >
+                      View detail
+                    </button>
+
                     {!copyright?.isTransfer && (
                       <button
                         type="button"
-                        onClick={() => router.push(`/transfer/${activeNft.tokenId}`)}
+                        onClick={handleTransfer}
                         className="disabled:text-gray-400 disabled:cursor-not-allowed flex-1 ml-3 bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                       >
                         Transfer
                       </button>
                     )}
+
+
+                    {showDialog && (
+                      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                        <div className="bg-white p-6 rounded-lg shadow-lg w-96">
+                          <h2 className="text-2xl font-bold text-center mb-4">License Expired</h2>
+                          <p className="text-gray-600 text-center mb-6">
+                            This license has expired. You cannot transfer it. Please renew the license to proceed with the transfer.
+                          </p>
+                          <div className="flex justify-center space-x-4">
+                            <button
+                              onClick={closeDialog}
+                              className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600"
+                            >
+                              Close
+                            </button>
+                            <button
+                              onClick={() => {
+                                router.push(`/my_nfts/${activeNft?.tokenId}`);
+                              }}
+                              className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+                            >
+                              Renew License
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+
+                    {showDialog2 && (
+                      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                        <div className="bg-white p-6 rounded-lg shadow-lg w-96">
+                          <h2 className="text-2xl font-bold text-center mb-4">Renewal Requested</h2>
+                          <p className="text-gray-600 text-center mb-6">
+                            You have requested a renewal. Please wait for the verifier to process it. We apologize for the inconvenience.
+                          </p>
+                          <div className="flex justify-center space-x-4">
+                            <button
+                              onClick={() => setShowDialog2(false)}
+                              className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            }
+              }
             </aside>
           </div>
         </div>

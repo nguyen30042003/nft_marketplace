@@ -57,7 +57,7 @@ const DashboardPage = () => {
         const pubRes = await fetchCountCopyrightPublishedByVerifier(userAddress!);
         const orderRes = await fetchCountCopyrightByVerifier(userAddress!);
         const topFiveRes = await fetchTopFiveNewestCopyrigtByVerifier(userAddress!);
-
+        
         setUserCount(userRes);
         setPublishedCount(pubRes);
         setOrderCount(orderRes - pubRes);

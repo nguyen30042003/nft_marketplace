@@ -822,12 +822,18 @@
     "5777": {
       "events": {},
       "links": {},
-      "address": "0x4Dae1a6e977E397F86809B6f610ED8A366B7e724",
-      "transactionHash": "0x3ca7e7adec03105b2c87bac0b24bcc3bf280a04859d6e5d559f6920acfc95203"
+      "address": "0xE2c2196595933718Fd66650DC589125779F6Cee5",
+      "transactionHash": "0x8715808c16e24f41d28a2ba9b92a9a303f766a0b1bb2dfbe7729204340a28e8e"
+    },
+    "11155111": {
+      "events": {},
+      "links": {},
+      "address": "0x5FB21BEDD4e2FAe26055FEd36f8Cd183368C7812",
+      "transactionHash": "0x4da35feb4ff9327da71af14f0a7bee7ece7e99aa18eff9fb54776640e6f6091f"
     }
   },
   "schemaVersion": "3.4.16",
-  "updatedAt": "2025-04-10T13:36:38.069Z",
+  "updatedAt": "2025-07-16T17:18:31.682Z",
   "networkType": "ethereum",
   "devdoc": {
     "kind": "dev",

@@ -6,6 +6,7 @@ import { NftMeta } from "@_types/nft";
 import axios from "axios";
 
 export default withSession(async (req: NextApiRequest & { session: Session }, res: NextApiResponse) => {
+
   if (req.method === "POST") {
     try {
       const { body } = req;

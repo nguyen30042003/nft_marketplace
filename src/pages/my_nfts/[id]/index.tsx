@@ -1,14 +1,17 @@
+/* eslint-disable react-hooks/rules-of-hooks */
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @next/next/no-img-element */
 import { emailRequest } from "@_types/emailRequest";
 import { NftMeta, PinataRes, Status } from "@_types/nft";
 import { useWeb3 } from "@providers/web3";
 import { BaseLayout } from "@ui";
+import TransactionBill from "@ui/bill/TransactionBill";
 import axios from "axios";
 import { fetch_copyright_by_id, send_email_api, update_copyright_by_id, update_status_copyright_by_id } from "components/fectData/fetch_copyright";
 import { fetch_all_transfer_copyright_by_verifier, fetch_transfer_copyright_by_search, update_status_transfer_copyright_by_id } from "components/fectData/transfer_copyright";
 import { useTransaction } from "components/service/transaction";
-import { data } from "framer-motion/client";
+import { set } from "date-fns";
+import { data, u } from "framer-motion/client";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { ChangeEvent, useEffect, useState } from "react";
@@ -29,13 +32,15 @@ const statusLabels: Record<number, string> = {
     6: "Rejected",
 };
 
+
+
 export default function MyNftPage() {
     const router = useRouter();
     const { id } = router.query;
     const idString = Array.isArray(id) ? id[0] : id ?? "";
     const { BigNumber } = require("ethers");
 
-    
+
 
     const { data: copyright, error, isLoading } = useSWR(
         idString ? ["fetch_copyright_by_id", idString] : null,
@@ -45,14 +50,44 @@ export default function MyNftPage() {
 
     const { ethereum, copyrightContract } = useWeb3();
     const [nftURI, setNftURI] = useState("");
-    const [nftMeta, setNftMeta] = useState<NftMeta>({
-        name: "",
-        description: "",
-        samples: "",
-        applicationForm: "",
-    });
+const [nftMeta, setNftMeta] = useState<NftMeta>({
+  uri: "",
+  name: "",
+  description: "",
+  samples: "",
+  applicationForm: "",
+  createAt: "",
+  updateAt: "",
+  activeAt: "",
+  expiredAt: "",
+});
+
 
     const [timelineSteps, setTimelineSteps] = useState<{ date: string; label: string }[]>([]);
+
+    const durations = [
+        { years: 3, price: "$30", p: 0.003, popular: false },
+        { years: 5, price: "$45", p: 0.045, popular: true },
+        { years: 10, price: "$80", p: 0.08, popular: false },
+    ];
+
+    const [selected, setSelected] = useState<number | null>(3);
+    const [selectedPrice, setSelectedPrice] = useState<number | null>(30);
+    const [showRenewDialog, setShowRenewDialog] = useState(false);
+
+    const handleSelect = (years: number, price: number) => {
+        setSelected(years);
+        setSelectedPrice(price);
+        setTimeout(() => {
+            // xử lý khi chọn xong
+        }, 300);
+    };
+    const now = new Date();
+    const expiredDate = new Date(now);
+    if (selected !== null) {
+        expiredDate.setFullYear(expiredDate.getFullYear() + selected);
+    }
+    const expiredAt = expiredDate.toISOString().slice(0, 10);
 
     useEffect(() => {
         if (copyright) {
@@ -69,7 +104,7 @@ export default function MyNftPage() {
             console.log("Fetching history...");
 
             try {
-                const history: any = await copyrightContract.getStatusHistory(2);
+                const history: any = await copyrightContract.getStatusHistory(copyright?.tokenId || 0);
                 console.log("Raw history data:", history);
 
                 if (!history || typeof history !== "object") {
@@ -106,9 +141,9 @@ export default function MyNftPage() {
 
         fetchHistory();
     }, [copyright, copyrightContract]);
-    
-    
-    
+
+
+
 
 
 
@@ -266,18 +301,36 @@ export default function MyNftPage() {
 
     const handleConfirmPayment = async () => {
         setShowDialog(false); // Ẩn dialog khi xác nhận
-
+        const verifierFee = 0.0009;
+        const tempHoldFee = 0.0005;
+        const total = Number((copyright!.gasFee + verifierFee - tempHoldFee).toFixed(6));
         if (!copyright) {
             console.error("Copyright data is not available yet!");
             return;
         }
 
         try {
-            sendTransaction(copyright.verifierAddress, 0.000005, idString, true);
+            sendTransaction(copyright.verifierAddress, total, idString, true, Status.PAID);
         } catch (e: any) {
             console.error(e.message);
         }
     };
+
+
+    const handleRenew = async () => {
+        setShowRenewDialog(false);
+
+        if (!copyright) {
+            console.error("Copyright data is not available yet!");
+            return;
+        }
+        console.log(expiredAt)
+        await sendTransaction(copyright.verifierAddress || "", selectedPrice || 0.0002, copyright.id, true, Status.REQUEST_RENEW, expiredAt);
+        // await sendTransaction(copyright.verifierAddress || "", selectedPrice || 0, "0", true, Status.REQUEST_RENEW);
+
+
+    };
+
 
 
     const [showDialogTrue, setShowDialogTrue] = useState(false);
@@ -300,6 +353,21 @@ export default function MyNftPage() {
     //     { date: "13/02", label: "Approve" },
     //     { date: "14/02", label: "Publish" },
     // ];
+
+    const handleCheckout = () => {
+        handleConfirmPayment(); // Gọi hàm xác nhận thanh toán
+        console.log("Checkout button clicked!");
+        // xử lý tiếp theo
+    };
+
+    const handleCancel = () => {
+        setShowDialog(false); // Ẩn dialog khi nhấn nút Cancel
+        console.log("Cancel button clicked!");
+        // tắt modal, ẩn bill, hoặc điều hướng
+    };
+
+
+
 
 
     return (
@@ -345,7 +413,7 @@ export default function MyNftPage() {
 
 
                             <p>
-                                <strong>Created At:</strong>
+                                <strong>Created At: </strong>
                                 {new Intl.DateTimeFormat("vi-VN", {
                                     day: "2-digit",
                                     month: "2-digit",
@@ -355,8 +423,10 @@ export default function MyNftPage() {
                                     second: "2-digit"
                                 }).format(new Date(copyright.metaData.createAt))}
                             </p>
-                            <p>
-                                <strong>Update At:</strong>
+                              {copyright?.status !== Status.PUBLISHED && (
+                                <>
+                                                            <p>
+                                <strong>Update At: </strong>
                                 {new Intl.DateTimeFormat("vi-VN", {
                                     day: "2-digit",
                                     month: "2-digit",
@@ -366,7 +436,40 @@ export default function MyNftPage() {
                                     second: "2-digit"
                                 }).format(new Date(copyright.metaData.updateAt))}
                             </p>
+                                </>)}
+
+                            {copyright?.status === Status.PUBLISHED && (
+                                <>
+                                    <p>
+                                        <strong>Expired At: </strong>
+                                        {new Intl.DateTimeFormat("vi-VN", {
+                                            day: "2-digit",
+                                            month: "2-digit",
+                                            year: "numeric",
+                                        }).format(new Date(copyright.metaData.expiredAt))}
+                                    </p>
+                                </>)}
                             <p><strong>Status:</strong> {copyright.status}</p>
+
+
+                            {copyright?.status === Status.EXPIRED && (
+                                <>
+
+                                    <div style={{ color: 'red' }}>
+                                        <p>Copyright expired on {copyright.metaData.expiredAt}</p>
+                                        <p>You have 10 days from the expiration date to renew. Otherwise, the copyright will be permanently deleted.</p>
+                                    </div>
+
+                                </>
+                            )}
+
+                            {copyright?.status === Status.REQUEST_RENEW && (
+                                <div style={{ color: 'red' }}>
+                                    <p>Please wait for the verifier to review your renewal request.</p>
+                                </div>
+                            )}
+
+
 
                             <p><strong>Transfer:</strong> {copyright.isTransfer ? "✔️" : "❌"}</p>
 
@@ -376,6 +479,7 @@ export default function MyNftPage() {
                             {copyright?.isTransfer && transferCopyrightData && (
                                 <p><strong>Status Transfer:</strong> {transferCopyrightData[0].status}</p>
                             )}
+
 
                             {copyright?.isTransfer && transferCopyrightData && (
                                 <p><strong>Transfer To User:</strong> {transferCopyrightData[0].toUserAddress}</p>
@@ -390,6 +494,17 @@ export default function MyNftPage() {
                                     <div className="mt-5 flex justify-center">
                                         <button className="px-4 py-2 bg-blue-500 text-white rounded" onClick={() => setShowDialog(true)} >Payment</button>
                                     </div>
+                                </>
+                            )}
+
+                            {copyright?.status === Status.EXPIRED && (
+                                <>
+                                    <button
+                                        onClick={() => setShowRenewDialog(true)}
+                                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
+                                    >
+                                        Renew
+                                    </button>
                                 </>
                             )}
 
@@ -485,26 +600,82 @@ export default function MyNftPage() {
                                 </>
                             )}
 
-                            {showDialog && (
-                                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
-                                    <div className="bg-white p-6 rounded-lg shadow-lg">
-                                        <h2 className="text-lg font-semibold">Xác nhận thanh toán</h2>
-                                        <p>Bạn có chắc chắn muốn thanh toán không?</p>
-                                        <div className="mt-4 flex justify-end space-x-3">
+                            {showRenewDialog && (
+                                <div className="fixed inset-0 flex items-center justify-center bg-gray-700 bg-opacity-50">
+                                    <div className="mt-10 bg-white p-10 rounded-2xl border border-gray-300 shadow-xl w-full max-w-4xl">
+                                        <h2 className="text-2xl font-bold mb-8 text-center text-gray-800">
+                                            Choose license expiration duration
+                                        </h2>
+
+                                        {/* Grid lựa chọn */}
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                                            {durations.map((option, index) => (
+                                                <div
+                                                    key={index}
+                                                    onClick={() => handleSelect(option.years, option.p)}
+                                                    className={`
+              border rounded-2xl p-8 cursor-pointer transition duration-200 flex flex-col items-center justify-center h-64 text-center
+              ${selected === option.years ? "border-blue-500 shadow-xl" : "border-gray-300"}
+              ${option.popular ? "bg-green-50 border-green-500" : "bg-white"}
+              hover:shadow-lg
+            `}
+                                                >
+                                                    {option.popular && (
+                                                        <div className="text-xs text-white bg-green-500 px-3 py-1 rounded-full mb-2">
+                                                            MOST POPULAR
+                                                        </div>
+                                                    )}
+                                                    <h3 className="text-2xl font-semibold">{option.years} Years</h3>
+                                                    <p className="text-gray-600 mt-2">
+                                                        Valid license duration: {option.years} years
+                                                    </p>
+                                                    <p className="text-xl font-bold mt-4">{option.price}</p>
+                                                    {selected === option.years && (
+                                                        <p className="text-blue-500 font-medium mt-2">✓ Selected</p>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        {/* Các nút action căn giữa */}
+                                        <div className="mt-4 flex justify-center space-x-4">
                                             <button
-                                                className="px-4 py-2 bg-gray-300 rounded"
-                                                onClick={() => setShowDialog(false)}
+                                                onClick={() => setShowRenewDialog(false)}
+                                                className="px-6 py-3 bg-gray-200 text-gray-800 rounded-xl hover:bg-gray-300 transition"
                                             >
-                                                Hủy
+                                                Cancel
                                             </button>
                                             <button
-                                                className="px-4 py-2 bg-green-500 text-white rounded"
-                                                onClick={handleConfirmPayment}
+                                                onClick={() => {
+                                                    handleRenew()
+                                                    // TODO: thực hiện thanh toán hoặc điều hướng
+                                                    console.log("Proceed to payment with:", selected, "years");
+                                                }}
+                                                className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition"
                                             >
-                                                Xác nhận
+                                                Proceed to Payment
                                             </button>
                                         </div>
                                     </div>
+                                </div>
+                            )}
+
+
+                            {showDialog && (
+                                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+                                    <TransactionBill
+                                        transactionId="0x123ABC"
+                                        recipientAddress={copyright.verifierAddress}
+                                        gasFee={copyright.gasFee}
+                                        verifierFee={0.0009}
+                                        tempHoldFee={0.0005}
+                                        total={copyright.gasFee + 0.0009 - 0.0005}
+                                        timestamp={new Date().toISOString()}
+                                        paymentDescription="The total amount to verify and register your copyright"
+                                        onCheckout={handleCheckout}
+                                        onCancel={handleCancel}
+                                    />
+
                                 </div>
                             )}
 
@@ -557,34 +728,34 @@ export default function MyNftPage() {
                     )}
                 </div>
                 {copyright?.status === Status.PUBLISHED && (
-                                <>
-                                    <h1 style={{ textAlign: "center", marginBottom: "20px", fontSize: "24px", fontWeight: "bold", marginTop: "20px" }}>History copyright register process</h1>
-                <div className="flex justify-center items-center mt-10">
-                    <div className="relative flex items-center w-full max-w-4xl">
-                        {timelineSteps.map((step, index) => (
-                            <div key={index} className="relative flex flex-col items-center w-1/4">
-                                <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center text-white font-bold text-sm z-10">
-                                    {index + 1}
-                                </div>
+                    <>
+                        <h1 style={{ textAlign: "center", marginBottom: "20px", fontSize: "24px", fontWeight: "bold", marginTop: "20px" }}>History copyright register process</h1>
+                        <div className="flex justify-center items-center mt-10">
+                            <div className="relative flex items-center w-full max-w-4xl">
+                                {timelineSteps.map((step, index) => (
+                                    <div key={index} className="relative flex flex-col items-center w-1/4">
+                                        <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center text-white font-bold text-sm z-10">
+                                            {index + 1}
+                                        </div>
 
-                                <p className="mt-2 text-sm text-gray-600">{step.date}</p>
+                                        <p className="mt-2 text-sm text-gray-600">{step.date}</p>
 
-                                <p className="text-md font-semibold">{step.label}</p>
+                                        <p className="text-md font-semibold">{step.label}</p>
 
-                                {index < timelineSteps.length - 1 && (
-                                    <div
-                                        className="absolute top-4 right-1/2 transform translate-x-1/2 w-1/2 h-1 bg-red-500 z-0"
-                                        style={{ left: '50%' }}
-                                    ></div>
-                                )}
+                                        {index < timelineSteps.length - 1 && (
+                                            <div
+                                                className="absolute top-4 right-1/2 transform translate-x-1/2 w-1/2 h-1 bg-red-500 z-0"
+                                                style={{ left: '50%' }}
+                                            ></div>
+                                        )}
+                                    </div>
+                                ))}
                             </div>
-                        ))}
-                    </div>
-                </div>
-                                </>
-                            )}
+                        </div>
+                    </>
+                )}
 
-                
+
             </div>
         </BaseLayout>
     );

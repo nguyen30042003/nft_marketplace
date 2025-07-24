@@ -1,4 +1,4 @@
-import { Member } from "@_types/nft";
+import { CopyrightType, Member, UserPaginationResponse } from "@_types/nft";
 import apiClient from "components/service/apiClient";
 import { json } from "stream/consumers";
 import useSWR from "swr";
@@ -49,10 +49,34 @@ export const useRegisteredUsers = () => {
   };
 };
 
-// Hàm fetch danh sách user chưa được duyệt
-const fetch_user_notApprove = async (): Promise<User[]> => {
-  const apiUrl = `http://localhost:8081/api/v1/users/pending-approvals`;
+const formatDateToString = (dateInput: string | Date): string => {
+  const date = typeof dateInput === "string" ? new Date(dateInput) : dateInput;
 
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
+  const hours = `${date.getHours()}`.padStart(2, "0");
+  const minutes = `${date.getMinutes()}`.padStart(2, "0");
+  const seconds = `${date.getSeconds()}`.padStart(2, "0");
+
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+};
+
+// Hàm fetch danh sách user chưa được duyệt
+export const fetch_user_notApprove = async (
+  search: string,
+  role: string,
+  startDate: Date,
+  endDate: Date,
+  page: number,
+  size: number,
+): Promise<UserPaginationResponse> => {
+  const formattedEnd = formatDateToString(endDate);
+  const formattedStart = formatDateToString(startDate);
+ 
+  const roleParam = role === 'ALL' ? '' : role;
+  const apiUrl = `http://localhost:8081/api/v1/users/pending-approvals?search=${search}&&role=${roleParam}&&startDate=${formattedStart}&&endDate=${formattedEnd}&&page=${page}&&size=${size}`;
+  console.log("API URL:", apiUrl);
   try {
     const response = await apiClient(apiUrl, { method: "GET" });
     console.log(response)
@@ -63,16 +87,86 @@ const fetch_user_notApprove = async (): Promise<User[]> => {
   }
 };
 
-// Hook sử dụng SWR để lấy danh sách user chưa được duyệt
-export const useNotApprovedUsers = () => {
-  const { data, error, isLoading } = useSWR<User[]>("not_approved_users", fetch_user_notApprove);
-
-  return {
-    users: data,
-    isLoading,
-    isError: !!error,
-  };
+export const get_users_by_member = async (
+  search: string,
+  role: string,
+  startDate: Date,
+  endDate: Date
+): Promise<number> => {
+  try {
+    const formattedEnd = formatDateToString(endDate);
+    const formattedStart = formatDateToString(startDate);
+    console.log("formattedStart:", formattedStart);
+    console.log("formattedEnd:", formattedEnd);
+    const roleParam = role === 'ALL' ? '' : role;
+    const apiUrl = `http://localhost:8081/api/v1/users/pending-approvals-number?search=${search}&role=${roleParam}&startDate=${formattedStart}&endDate=${formattedEnd}`;
+    console.log("API URL:", apiUrl);
+    const response = await apiClient(apiUrl, { method: "GET" });
+    console.log("Response:", response);
+    return response;
+  } catch (error) {
+    console.error("Error in get_copyrights:", error);
+    throw error;
+  }
 };
+
+
+
+
+// Hàm fetch danh sách user chưa được duyệt
+export const fetch_user_Approve = async (
+  search: string,
+  role: string,
+  startDate: Date,
+  endDate: Date,
+  page: number,
+  size: number,
+): Promise<UserPaginationResponse> => {
+  const formattedStart = formatDateToString(startDate);
+  const formattedEnd = formatDateToString(endDate);
+  const roleParam = role === 'ALL' ? '' : role;
+  const apiUrl = `http://localhost:8081/api/v1/users/approvals?search=${search}&role=${roleParam}&startDate=${formattedStart}&&endDate=${formattedEnd}&&page=${page}&&size=${size}`;
+  console.log("API URL:", apiUrl);
+  try {
+    const response = await apiClient(apiUrl, { method: "GET" });
+    console.log(response)
+    return response;
+  } catch (error) {
+    console.error("Error in fetch_user_notApprove:", error);
+    throw error;
+  }
+};
+
+export const get_users_approved_by_member = async (
+  search: string,
+  role: string,
+  startDate: Date,
+  endDate: Date
+): Promise<number> => {
+  try {
+    const formattedStart = formatDateToString(startDate);
+    const formattedEnd = formatDateToString(endDate);
+    console.log("formattedStart:", formattedStart);
+    console.log("formattedEnd:", formattedEnd);
+    const roleParam = role === 'ALL' ? '' : role;
+    const apiUrl = `http://localhost:8081/api/v1/users/approvals-number?search=${search}&role=${roleParam}&startDate=${formattedStart}&endDate=${formattedEnd}`;
+    console.log("API URL:", apiUrl);
+    const response = await apiClient(apiUrl, { method: "GET" });
+    console.log("Response:", response);
+    return response;
+  } catch (error) {
+    console.error("Error in get_copyrights:", error);
+    throw error;
+  }
+};
+
+
+
+
+
+
+
+
 
 
 // Hàm fetch để phê duyệt user theo address
@@ -156,12 +250,13 @@ export const useFetchUserByAddress = (address: string) => {
 
 
 // Hàm fetch để phê duyệt user theo address
-const get_user_by_address = async (address: string): Promise<void> => {
-  const apiUrl = `http://localhost:8081/api/v1/users/${address}`;
-
+export const get_user_by_address = async (address: string) : Promise<User> => {
+  const apiUrl = `http://localhost:8081/api/v1/users?address=${address}`;
+  console.log(apiUrl)
   try {
-    await apiClient(apiUrl, { method: "GET" });
-    console.log(`User with address ${address} approved successfully.`);
+    const response = await apiClient(apiUrl, { method: "GET" });
+    console.log(response)
+    return response;
   } catch (error) {
     console.error(`Error approving user with address ${address}:`, error);
     throw error;
@@ -169,9 +264,28 @@ const get_user_by_address = async (address: string): Promise<void> => {
 };
 
 
-const get_member_by_verifer_address = async (address: string): Promise<User[]> => {
-  const apiUrl = `http://localhost:8081/api/v1/users/member?address=${address}`;
+export const get_user_by_verifer_address = async (address: string, name: string, status: string,  startDate: Date, endDate: Date, page: number, size: number): Promise<UserPaginationResponse> => {
+  const formattedStart = formatDateToString(startDate);
+  const formattedEnd = formatDateToString(endDate);
+  const isApprove = status === 'APPROVED' ? true : false;
 
+
+  const apiUrl = `http://localhost:8081/api/v1/users/members?address=${address}&isApprove=${isApprove}&name=${name}&startDate=${formattedStart}&endDate=${formattedEnd}&page=${page}&size=${size}`;
+  console.log(apiUrl)
+  try {
+    const response = await apiClient(apiUrl, { method: "GET" });
+    return response;
+  } catch (error) {
+    console.error(`Error fetching users with address ${address}:`, error);
+    throw error;
+  } 
+};
+
+export const get_user_member_by_verifer_address = async (address: string, name: string, status: string,  startDate: Date, endDate: Date): Promise<number> => {
+  const formattedStart = formatDateToString(startDate);
+  const formattedEnd = formatDateToString(endDate);
+  const isApprove = status === 'APPROVED' ? true : false;
+  const apiUrl = `http://localhost:8081/api/v1/users/member?address=${address}&isApprove=${isApprove}&name=${name}&startDate=${formattedStart}&endDate=${formattedEnd}`;
   try {
     const response = await apiClient(apiUrl, { method: "GET" });
     return response;
@@ -182,23 +296,7 @@ const get_member_by_verifer_address = async (address: string): Promise<User[]> =
 };
 
 
-export const useMemberByVerifer = (address: string) => {
-  const shouldFetch = !!address; // đảm bảo chỉ fetch khi address có giá trị
 
-  const { data, error, isLoading } = useSWR(
-    shouldFetch ? `get_member_by_verifer_address_${address}` : null,
-    () => get_member_by_verifer_address(address)
-  );
-
-  return {
-    users: data,
-    isLoading,
-    isError: !!error,
-  };
-};
-
-
-// Hàm fetch danh sách user đã được duyệt
 export const create_member_by_verifier = async (member: Member): Promise<void> => {
   const apiUrl = `http://localhost:8081/auth/signup`;
 
@@ -213,9 +311,9 @@ export const create_member_by_verifier = async (member: Member): Promise<void> =
 };
 
 
-const fetch_user_by_id = async (id: string): Promise<User> => {
+export const fetch_user_by_id = async (id: string): Promise<User> => {
   const apiUrl = `http://localhost:8081/api/v1/users/${id}`;
-
+  console.log(apiUrl)
   try {
     const response = await apiClient(apiUrl, { method: "GET" });
     console.log(response)
@@ -244,6 +342,32 @@ export const deleteUser = async (id: string): Promise<void> => {
   try {
     const response = await apiClient(apiUrl, { method: "POST" });
     console.log(response)
+  } catch (error) {
+    console.error("Error in deleteUser:", error);
+    throw error;
+  }
+};
+
+export const fetchVerifierByType = async (type: CopyrightType | null, search: string, page: number, size: number): Promise<UserPaginationResponse> => {
+    const apiUrl = `http://localhost:8081/api/v1/users/verifiers?type=${type}&search=${search}&page=${page}&size=${size}`;
+  console.log(apiUrl)
+  try {
+    const response = await apiClient(apiUrl, { method: "GET" });
+    console.log(response)
+    return response;
+  } catch (error) {
+    console.error("Error in deleteUser:", error);
+    throw error;
+  }
+};
+
+export const fetchVerifierNumerByType = async (type: CopyrightType | null, search: string): Promise<number> => {
+    const apiUrl = `http://localhost:8081/api/v1/users/verifiers-number?type=${type}&search=${search}`;
+  console.log(apiUrl)
+  try {
+    const response = await apiClient(apiUrl, { method: "GET" });
+    console.log(response)
+    return response;
   } catch (error) {
     console.error("Error in deleteUser:", error);
     throw error;

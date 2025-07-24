@@ -1,5 +1,6 @@
 import { TransferCopyRight, TransferCopyRightRequest, TransferCopyRightResponse } from "@_types/nft";
 import apiClient from "components/service/apiClient";
+import { fetch_user_by_id, get_user_by_address } from "./fetch_user";
 
 
 export const create_transfer_copyright = async (transferCopyrightData: TransferCopyRightRequest): Promise<TransferCopyRightRequest> => {
@@ -20,6 +21,22 @@ export const create_transfer_copyright = async (transferCopyrightData: TransferC
 
   export const fetch_all_transfer_copyright_by_verifier = async (address: string): Promise<TransferCopyRightResponse[]> => {
     const apiUrl = `http://localhost:8081/api/v1/transactions?address=${address}`;
+    console.log(apiUrl);
+    try {
+      const response = await apiClient(apiUrl, { method: "GET" });
+      console.log(response);
+      return response;
+    } catch (error) {
+      console.error("Error in fetch_all_copyright:", error);
+      throw error;
+    }
+  };
+  
+
+  export const fetch_all_transfer_copyright_by_member = async (address: string): Promise<TransferCopyRightResponse[]> => {
+    const verifier = await get_user_by_address(address);
+      const verifierAddress = await fetch_user_by_id(verifier!.verifierId);
+    const apiUrl = `http://localhost:8081/api/v1/transactions?address=${verifierAddress!.address}`;
     console.log(apiUrl);
     try {
       const response = await apiClient(apiUrl, { method: "GET" });

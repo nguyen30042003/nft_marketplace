@@ -31,26 +31,30 @@ const Menu = () => {
   const router = useRouter();
 
   return (
-    <div className="mt-4 text-sm">
+    <div className="mt-8">
       {menuItems.map((section) => (
         <div className="flex flex-col gap-2" key={section.title}>
-          <span className="hidden lg:block text-gray-400 font-light my-4">
+          <span className="hidden lg:block text-gray-400 font-bold text-base my-4">
             {section.title}
           </span>
+
           {section.items.map((item) => (
             <Link
               href={item.href}
               key={item.label}
               passHref
-              className={`flex items-center justify-center lg:justify-start gap-4 py-2 md:px-2 rounded-md ${
-                router.pathname === item.href
+              className={`flex items-center justify-center lg:justify-start gap-4 py-2 md:px-2 rounded-md ${router.pathname === item.href
                   ? "bg-gray-700 text-white"
                   : "text-gray-500 hover:bg-lamaSkyLight"
-              }`}
+                }`}
             >
-              <Image src={item.icon} alt="" width={20} height={20} />
-              <span className="hidden lg:block">{item.label}</span>
+              {/* Increase icon size here */}
+              <Image src={item.icon} alt="" width={28} height={28} />
+
+              {/* Make text visible, bold, and larger */}
+              <span className="hidden lg:block font-bold text-base">{item.label}</span>
             </Link>
+
           ))}
         </div>
       ))}

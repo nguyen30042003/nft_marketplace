@@ -1,3 +1,5 @@
+import { User } from "components/fectData/fetch_user";
+
 // Enum for different states of a copyright registration
 export enum Status {
   UPLOADED = "UPLOADED",
@@ -6,7 +8,16 @@ export enum Status {
   REJECTED = "REJECTED",
   APPROVED = "APPROVED",
   PUBLISHED = "PUBLISHED",
-  PAID = "PAID"
+  PAID = "PAID",
+  EXPIRED = "EXPIRED",
+  REQUEST_RENEW = "REQUEST_RENEW",
+}
+export enum CopyrightType {
+  BUSINESS = "BUSINESS",
+  SOFTWARE = "SOFTWARE",
+  ART = "ART",
+  MUSIC = "MUSIC",
+  VIDEO = "VIDEO"
 }
 
 export type Trait = "attack" | "health" | "speed";
@@ -22,15 +33,19 @@ export type NftMeta = {
   description: string;  
   samples: string;
   applicationForm: string;
-  createAt: string;
-  updateAt: string;
+  createAt: string,
+  updateAt: string,
+  activeAt: string,
+  expiredAt: string
 };
 
 export type NftCore = {
   tokenId: number;
-  price: number;
   creator: string;
   isListed: boolean;
+  copyrightType: number;
+  activeAt: number;
+  expiredAt: number;
 };
 
 export type Nft = {
@@ -50,15 +65,8 @@ export type PinataRes = {
   isDuplicate: boolean;
 };
 
-// User structure
-export interface User {
-  id: string,
-  username: string;
-  address: string;
-  email: string;
-  role: "USER" | "ADMIN"; // Giới hạn giá trị role
-  isApprove: boolean;
-}
+
+
 
 // CopyRight entity
 export interface CopyRight {
@@ -68,7 +76,9 @@ export interface CopyRight {
   metaData: NftMeta; // Sử dụng lại NftMeta để tránh trùng lặp
   tokenId: string,
   verifierAddress: string,
-  isTransfer: Boolean
+  isTransfer: Boolean,
+  gasFee: number,
+  copyrightType: CopyrightType,
 }
 
 export interface CopyRightRequest {
@@ -76,7 +86,8 @@ export interface CopyRightRequest {
   userAddress: String;
   metaData: NftMeta;
   tokenId: String,
-  verifierAddress: String
+  verifierAddress: String,
+  copyrightType: CopyrightType,
 }
 
 
@@ -148,3 +159,79 @@ export interface Member {
   isStaff: boolean;
   idVerifier: number;
 };
+
+
+export interface CopyRightPaginationResponse {
+  totalPages: number;
+  totalElements: number;
+  size: number;
+  number: number;
+  first: boolean;
+  last: boolean;
+  numberOfElements: number;
+  empty: boolean;
+  sort: any[];
+  pageable: {
+    pageNumber: number;
+    pageSize: number;
+    sort: any[]; 
+    offset: number;
+    paged: boolean;
+    unpaged: boolean;
+  };
+  content: CopyRight[]; 
+}
+
+
+export interface UserPaginationResponse {
+  totalPages: number;
+  totalElements: number;
+  size: number;
+  number: number;
+  first: boolean;
+  last: boolean;
+  numberOfElements: number;
+  empty: boolean;
+  sort: any[];
+  pageable: {
+    pageNumber: number;
+    pageSize: number;
+    sort: any[]; 
+    offset: number;
+    paged: boolean;
+    unpaged: boolean;
+  };
+  content: User[]; 
+}
+
+export interface CopyRightTransferPaginationResponse {
+  totalPages: number;
+  totalElements: number;
+  size: number;
+  number: number;
+  first: boolean;
+  last: boolean;
+  numberOfElements: number;
+  empty: boolean;
+  sort: any[];
+  pageable: {
+    pageNumber: number;
+    pageSize: number;
+    sort: any[]; 
+    offset: number;
+    paged: boolean;
+    unpaged: boolean;
+  };
+  content: TransferCopyRightResponse[]; 
+}
+
+export interface CheckBranchResponse {
+  potentiallySimilarBrands: String[];
+  riskAssessment: String;
+  explanation: String;
+}
+
+export interface LogoBranchResponse {
+  url: string;
+  b64Json: string;
+}

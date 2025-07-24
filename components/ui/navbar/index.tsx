@@ -12,7 +12,8 @@ import Walletbar from './Walletbar';
 const navigation = [
   { name: 'Homepage', href: '/', current: true },
   { name: 'Create', href: '/nft/create', current: false },
-  { name: 'Marketplace', href: '/nft_list/create', current: false },
+  { name: 'Marketplace', href: '/copyrights', current: false },
+  { name: 'AI Support', href: '/ai_support', current: false },
 ]
 
 function classNames(...classes: string[]) {
@@ -36,13 +37,6 @@ export default function Navbar() {
             </DisclosureButton>
           </div>
           <div className="flex flex-1 items-center justify-center sm:items-stretch sm:justify-start">
-            <div className="flex flex-shrink-0 items-center">
-              <img
-                alt="Your Company"
-                src="https://readymadeui.com/readymadeui.svg"
-                className="h-8 w-auto"
-              />
-            </div>
             <div className="hidden sm:ml-6 sm:block">
               <div className="flex space-x-4">
                 {navigation.map((item) => (
